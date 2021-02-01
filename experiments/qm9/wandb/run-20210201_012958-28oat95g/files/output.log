@@ -1,0 +1,133 @@
+
+
+FLAGS: Namespace(batch_size=24, data_address='QM9_data.pt', device=device(type='cuda', index=0), div=2.0, fully_connected=False, head=8, log_interval=25, lr=0.001, model='SE3Transformer', name='qm9-homo', num_channels=32, num_degrees=4, num_epochs=50, num_layers=7, num_nlayers=0, num_workers=4, pooling='max', print_interval=250, profile=False, restore=None, save_dir='models', seed=1992, task='homo', wandb='equivariant-attention')
+UNPARSED_ARGV: [] 
+
+
+Loaded train-set, task: homo, source: QM9_data.pt, length: 100000
+Loaded valid-set, task: homo, source: QM9_data.pt, length: 17748
+Loaded test-set, task: homo, source: QM9_data.pt, length: 13083
+ModuleList(
+  (0): GSE3Res(
+    (GMAB): ModuleDict(
+      (v): GConvSE3Partial(structure=[(16, 0), (16, 1), (16, 2), (16, 3)])
+      (k): GConvSE3Partial(structure=[(16, 0)])
+      (q): G1x1SE3(structure=[(16, 0)])
+      (attn): GMABSE3(n_heads=8, structure=[(16, 0), (16, 1), (16, 2), (16, 3)])
+    )
+    (project): G1x1SE3(structure=[(32, 0), (32, 1), (32, 2), (32, 3)])
+    (add): GSum(structure=[(32, 0), (32, 1), (32, 2), (32, 3)])
+  )
+  (1): GNormSE3(num_layers=0, nonlin=ReLU(inplace=True))
+  (2): GSE3Res(
+    (GMAB): ModuleDict(
+      (v): GConvSE3Partial(structure=[(16, 0), (16, 1), (16, 2), (16, 3)])
+      (k): GConvSE3Partial(structure=[(16, 0), (16, 1), (16, 2), (16, 3)])
+      (q): G1x1SE3(structure=[(16, 0), (16, 1), (16, 2), (16, 3)])
+      (attn): GMABSE3(n_heads=8, structure=[(16, 0), (16, 1), (16, 2), (16, 3)])
+    )
+    (project): G1x1SE3(structure=[(32, 0), (32, 1), (32, 2), (32, 3)])
+    (add): GSum(structure=[(32, 0), (32, 1), (32, 2), (32, 3)])
+  )
+  (3): GNormSE3(num_layers=0, nonlin=ReLU(inplace=True))
+  (4): GSE3Res(
+    (GMAB): ModuleDict(
+      (v): GConvSE3Partial(structure=[(16, 0), (16, 1), (16, 2), (16, 3)])
+      (k): GConvSE3Partial(structure=[(16, 0), (16, 1), (16, 2), (16, 3)])
+      (q): G1x1SE3(structure=[(16, 0), (16, 1), (16, 2), (16, 3)])
+      (attn): GMABSE3(n_heads=8, structure=[(16, 0), (16, 1), (16, 2), (16, 3)])
+    )
+    (project): G1x1SE3(structure=[(32, 0), (32, 1), (32, 2), (32, 3)])
+    (add): GSum(structure=[(32, 0), (32, 1), (32, 2), (32, 3)])
+  )
+  (5): GNormSE3(num_layers=0, nonlin=ReLU(inplace=True))
+  (6): GSE3Res(
+    (GMAB): ModuleDict(
+      (v): GConvSE3Partial(structure=[(16, 0), (16, 1), (16, 2), (16, 3)])
+      (k): GConvSE3Partial(structure=[(16, 0), (16, 1), (16, 2), (16, 3)])
+      (q): G1x1SE3(structure=[(16, 0), (16, 1), (16, 2), (16, 3)])
+      (attn): GMABSE3(n_heads=8, structure=[(16, 0), (16, 1), (16, 2), (16, 3)])
+    )
+    (project): G1x1SE3(structure=[(32, 0), (32, 1), (32, 2), (32, 3)])
+    (add): GSum(structure=[(32, 0), (32, 1), (32, 2), (32, 3)])
+  )
+  (7): GNormSE3(num_layers=0, nonlin=ReLU(inplace=True))
+  (8): GSE3Res(
+    (GMAB): ModuleDict(
+      (v): GConvSE3Partial(structure=[(16, 0), (16, 1), (16, 2), (16, 3)])
+      (k): GConvSE3Partial(structure=[(16, 0), (16, 1), (16, 2), (16, 3)])
+      (q): G1x1SE3(structure=[(16, 0), (16, 1), (16, 2), (16, 3)])
+      (attn): GMABSE3(n_heads=8, structure=[(16, 0), (16, 1), (16, 2), (16, 3)])
+    )
+    (project): G1x1SE3(structure=[(32, 0), (32, 1), (32, 2), (32, 3)])
+    (add): GSum(structure=[(32, 0), (32, 1), (32, 2), (32, 3)])
+  )
+  (9): GNormSE3(num_layers=0, nonlin=ReLU(inplace=True))
+  (10): GSE3Res(
+    (GMAB): ModuleDict(
+      (v): GConvSE3Partial(structure=[(16, 0), (16, 1), (16, 2), (16, 3)])
+      (k): GConvSE3Partial(structure=[(16, 0), (16, 1), (16, 2), (16, 3)])
+      (q): G1x1SE3(structure=[(16, 0), (16, 1), (16, 2), (16, 3)])
+      (attn): GMABSE3(n_heads=8, structure=[(16, 0), (16, 1), (16, 2), (16, 3)])
+    )
+    (project): G1x1SE3(structure=[(32, 0), (32, 1), (32, 2), (32, 3)])
+    (add): GSum(structure=[(32, 0), (32, 1), (32, 2), (32, 3)])
+  )
+  (11): GNormSE3(num_layers=0, nonlin=ReLU(inplace=True))
+  (12): GSE3Res(
+    (GMAB): ModuleDict(
+      (v): GConvSE3Partial(structure=[(16, 0), (16, 1), (16, 2), (16, 3)])
+      (k): GConvSE3Partial(structure=[(16, 0), (16, 1), (16, 2), (16, 3)])
+      (q): G1x1SE3(structure=[(16, 0), (16, 1), (16, 2), (16, 3)])
+      (attn): GMABSE3(n_heads=8, structure=[(16, 0), (16, 1), (16, 2), (16, 3)])
+    )
+    (project): G1x1SE3(structure=[(32, 0), (32, 1), (32, 2), (32, 3)])
+    (add): GSum(structure=[(32, 0), (32, 1), (32, 2), (32, 3)])
+  )
+  (13): GNormSE3(num_layers=0, nonlin=ReLU(inplace=True))
+  (14): GConvSE3(structure=[(128, 0)], self_interaction=True)
+  (15): GMaxPooling(
+    (pool): MaxPooling()
+  )
+)
+ModuleList(
+  (0): Linear(in_features=128, out_features=128, bias=True)
+  (1): ReLU(inplace=True)
+  (2): Linear(in_features=128, out_features=1, bias=True)
+)
+Begin training
+Saved: models/qm9-homo.pt
+/home/vwslz/anaconda3/envs/ml/lib/python3.8/site-packages/torch/nn/modules/container.py:552: UserWarning: Setting attributes on ParameterDict is not supported.
+  warnings.warn("Setting attributes on ParameterDict is not supported.")
+/home/vwslz/anaconda3/envs/ml/lib/python3.8/site-packages/dgl/base.py:45: DGLWarning: Recommend creating graphs by `dgl.graph(data)` instead of `dgl.DGLGraph(data)`.
+  return warnings.warn(message, category=category, stacklevel=1)
+/home/vwslz/anaconda3/envs/ml/lib/python3.8/site-packages/dgl/base.py:45: DGLWarning: Recommend creating graphs by `dgl.graph(data)` instead of `dgl.DGLGraph(data)`.
+  return warnings.warn(message, category=category, stacklevel=1)
+/home/vwslz/anaconda3/envs/ml/lib/python3.8/site-packages/dgl/base.py:45: DGLWarning: Recommend creating graphs by `dgl.graph(data)` instead of `dgl.DGLGraph(data)`.
+  return warnings.warn(message, category=category, stacklevel=1)
+/home/vwslz/anaconda3/envs/ml/lib/python3.8/site-packages/dgl/base.py:45: DGLWarning: Recommend creating graphs by `dgl.graph(data)` instead of `dgl.DGLGraph(data)`.
+  return warnings.warn(message, category=category, stacklevel=1)
+Traceback (most recent call last):
+  File "/home/vwslz/github/se3-transformer-public/experiments/qm9/train.py", line 272, in <module>
+    main(FLAGS, UNPARSED_ARGV)
+  File "/home/vwslz/github/se3-transformer-public/experiments/qm9/train.py", line 179, in main
+    train_epoch(epoch, model, task_loss, train_loader, optimizer, scheduler, FLAGS)
+  File "/home/vwslz/github/se3-transformer-public/experiments/qm9/train.py", line 36, in train_epoch
+    pred = model(g)
+  File "/home/vwslz/anaconda3/envs/ml/lib/python3.8/site-packages/torch/nn/modules/module.py", line 727, in _call_impl
+    result = self.forward(*input, **kwargs)
+  File "/home/vwslz/github/se3-transformer-public/experiments/qm9/models.py", line 133, in forward
+    h = layer(h, G=G, r=r, basis=basis)
+  File "/home/vwslz/anaconda3/envs/ml/lib/python3.8/site-packages/torch/nn/modules/module.py", line 727, in _call_impl
+    result = self.forward(*input, **kwargs)
+  File "/home/vwslz/github/se3-transformer-public/equivariant_attention/modules.py", line 608, in forward
+    k = self.GMAB['k'](features, G=G, **kwargs)
+  File "/home/vwslz/anaconda3/envs/ml/lib/python3.8/site-packages/torch/nn/modules/module.py", line 727, in _call_impl
+    result = self.forward(*input, **kwargs)
+  File "/home/vwslz/github/se3-transformer-public/equivariant_attention/modules.py", line 467, in forward
+    G.edata[etype] = self.kernel_unary[etype](feat, basis)
+  File "/home/vwslz/anaconda3/envs/ml/lib/python3.8/site-packages/torch/nn/modules/module.py", line 727, in _call_impl
+    result = self.forward(*input, **kwargs)
+  File "/home/vwslz/github/se3-transformer-public/equivariant_attention/modules.py", line 271, in forward
+    kernel = torch.sum(R * basis[f'{self.degree_in},{self.degree_out}'], -1)
+RuntimeError: CUDA out of memory. Tried to allocate 616.00 MiB (GPU 0; 7.79 GiB total capacity; 5.60 GiB already allocated; 107.06 MiB free; 6.28 GiB reserved in total by PyTorch)
