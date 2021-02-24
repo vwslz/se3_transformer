@@ -10,7 +10,7 @@ import dgl
 import math
 import numpy as np
 import torch
-import wandb
+# import wandb
 
 from torch import nn, optim
 from torch.nn import functional as F
@@ -18,6 +18,8 @@ from torch.utils.data import DataLoader
 from QM9 import QM9Dataset
 
 from experiments.qm9 import models #as models
+
+import timeit
 
 def to_np(x):
     return x.cpu().detach().numpy()
@@ -29,6 +31,9 @@ def train_epoch(epoch, model, loss_fnc, dataloader, optimizer, scheduler, FLAGS)
     for i, (g, y) in enumerate(dataloader):
         g = g.to(FLAGS.device)
         y = y.to(FLAGS.device)
+
+        torch.save(g, 'g.pt')
+        torch.save(y, 'y.pt')
 
         optimizer.zero_grad()
 
@@ -42,9 +47,9 @@ def train_epoch(epoch, model, loss_fnc, dataloader, optimizer, scheduler, FLAGS)
 
         if i % FLAGS.print_interval == 0:
             print(f"[{epoch}|{i}] l1 loss: {l1_loss:.5f} rescale loss: {rescale_loss:.5f} [units]")
-        if i % FLAGS.log_interval == 0:
-            wandb.log({"Train L1 loss": to_np(l1_loss), 
-                       "Rescale loss": to_np(rescale_loss)})
+        # if i % FLAGS.log_interval == 0:
+        #     wandb.log({"Train L1 loss": to_np(l1_loss),
+        #                "Rescale loss": to_np(rescale_loss)})
 
         if FLAGS.profile and i == 10:
             sys.exit()
@@ -66,7 +71,7 @@ def val_epoch(epoch, model, loss_fnc, dataloader, FLAGS):
     rloss /= FLAGS.val_size
 
     print(f"...[{epoch}|val] rescale loss: {rloss:.5f} [units]")
-    wandb.log({"Val L1 loss": to_np(rloss)})
+    # wandb.log({"Val L1 loss": to_np(rloss)})
 
 def test_epoch(epoch, model, loss_fnc, dataloader, FLAGS):
     model.eval()
@@ -83,7 +88,7 @@ def test_epoch(epoch, model, loss_fnc, dataloader, FLAGS):
     rloss /= FLAGS.test_size
 
     print(f"...[{epoch}|test] rescale loss: {rloss:.5f} [units]")
-    wandb.log({"Test L1 loss": to_np(rloss)})
+    # wandb.log({"Test L1 loss": to_np(rloss)})
 
 
 class RandomRotation(object):
@@ -103,7 +108,7 @@ def collate(samples):
 def main(FLAGS, UNPARSED_ARGV):
 
     # Prepare data
-    train_dataset = QM9Dataset(FLAGS.data_address, 
+    train_dataset = QM9Dataset(FLAGS.data_address,
                                FLAGS.task,
                                mode='train', 
                                transform=RandomRotation())
@@ -113,7 +118,7 @@ def main(FLAGS, UNPARSED_ARGV):
                               collate_fn=collate, 
                               num_workers=FLAGS.num_workers)
 
-    val_dataset = QM9Dataset(FLAGS.data_address, 
+    val_dataset = QM9Dataset(FLAGS.data_address,
                              FLAGS.task,
                              mode='valid') 
     val_loader = DataLoader(val_dataset, 
@@ -122,7 +127,7 @@ def main(FLAGS, UNPARSED_ARGV):
                             collate_fn=collate, 
                             num_workers=FLAGS.num_workers)
 
-    test_dataset = QM9Dataset(FLAGS.data_address, 
+    test_dataset = QM9Dataset(FLAGS.data_address,
                              FLAGS.task, 
                              mode='test') 
     test_loader = DataLoader(test_dataset, 
@@ -137,7 +142,7 @@ def main(FLAGS, UNPARSED_ARGV):
 
     # Choose model
     model = models.__dict__.get(FLAGS.model)(FLAGS.num_layers, 
-                                             train_dataset.atom_feature_size, 
+                                             train_dataset.atom_feature_size,
                                              FLAGS.num_channels,
                                              num_nlayers=FLAGS.num_nlayers,
                                              num_degrees=FLAGS.num_degrees,
@@ -148,7 +153,7 @@ def main(FLAGS, UNPARSED_ARGV):
     if FLAGS.restore is not None:
         model.load_state_dict(torch.load(FLAGS.restore))
     model.to(FLAGS.device)
-    #wandb.watch(model)
+    # #wandb.watch(model)
 
     # Optimizer settings
     optimizer = optim.Adam(model.parameters(), lr=FLAGS.lr)
@@ -158,6 +163,8 @@ def main(FLAGS, UNPARSED_ARGV):
 
     # Loss function
     def task_loss(pred, target, use_mean=True):
+        torch.save(pred, 'pred.pt')
+        torch.save(target, 'target.pt')
         l1_loss = torch.sum(torch.abs(pred - target))
         l2_loss = torch.sum((pred - target)**2)
         if use_mean:
@@ -172,14 +179,19 @@ def main(FLAGS, UNPARSED_ARGV):
 
     # Run training
     print('Begin training')
+
     for epoch in range(FLAGS.num_epochs):
         torch.save(model.state_dict(), save_path)
         print(f"Saved: {save_path}")
+
+        start_epoch = timeit.default_timer()
 
         train_epoch(epoch, model, task_loss, train_loader, optimizer, scheduler, FLAGS)
         val_epoch(epoch, model, task_loss, val_loader, FLAGS)
         test_epoch(epoch, model, task_loss, test_loader, FLAGS)
 
+        stop_epoch = timeit.default_timer()
+        print('Time for epoch: ', stop_epoch - start_epoch)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -259,14 +271,18 @@ if __name__ == '__main__':
     # Automatically choose GPU if available
     FLAGS.device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
 
-    # Log all args to wandb
-    if FLAGS.name:
-        wandb.init(project=f'{FLAGS.wandb}', name=f'{FLAGS.name}')
-    else:
-        wandb.init(project=f'{FLAGS.wandb}')
+    # # Log all args to wandb
+    # if FLAGS.name:
+    #     wandb.init(project=f'{FLAGS.wandb}', name=f'{FLAGS.name}')
+    # else:
+    #     wandb.init(project=f'{FLAGS.wandb}')
 
     print("\n\nFLAGS:", FLAGS)
     print("UNPARSED_ARGV:", UNPARSED_ARGV, "\n\n")
 
     # Where the magic is
+    start_main = timeit.default_timer()
     main(FLAGS, UNPARSED_ARGV)
+    stop_main = timeit.default_timer()
+
+    print('Total Time: ', stop_main - start_main)

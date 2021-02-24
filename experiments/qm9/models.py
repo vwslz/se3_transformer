@@ -76,7 +76,7 @@ class TFN(nn.Module):
 class SE3Transformer(nn.Module):
     """SE(3) equivariant GCN with attention"""
     def __init__(self, num_layers: int, atom_feature_size: int, 
-                 num_channels: int, num_nlayers: int=1, num_degrees: int=4, 
+                 num_channels: int, num_nlayers: int=1, num_degrees: int=4, num_chis = 108,
                  edge_dim: int=4, div: float=4, pooling: str='avg', n_heads: int=1, **kwargs):
         super().__init__()
         # Build the network
@@ -84,16 +84,20 @@ class SE3Transformer(nn.Module):
         self.num_nlayers = num_nlayers
         self.num_channels = num_channels
         self.num_degrees = num_degrees
+        # self.node_dim = node_dim
         self.edge_dim = edge_dim
         self.div = div
         self.pooling = pooling
         self.n_heads = n_heads
+        self.num_chis = num_chis
 
+        # self.fibers = {'in': Fiber(1, atom_feature_size),
+        #                'mid': Fiber(num_degrees, self.num_channels),
+        #                'out': Fiber(1, num_degrees*self.num_channels)}
         self.fibers = {'in': Fiber(1, atom_feature_size),
                        'mid': Fiber(num_degrees, self.num_channels),
                        'out': Fiber(1, num_degrees*self.num_channels)}
-
-        blocks = self._build_gcn(self.fibers, 1)
+        blocks = self._build_gcn(self.fibers, num_chis)
         self.Gblock, self.FCblock = blocks
         print(self.Gblock)
         print(self.FCblock)
@@ -119,6 +123,7 @@ class SE3Transformer(nn.Module):
         FCblock = []
         FCblock.append(nn.Linear(self.fibers['out'].n_features, self.fibers['out'].n_features))
         FCblock.append(nn.ReLU(inplace=True))
+        # FCblock.append(nn.Sigmoid())
         FCblock.append(nn.Linear(self.fibers['out'].n_features, out_dim))
 
         return nn.ModuleList(Gblock), nn.ModuleList(FCblock)

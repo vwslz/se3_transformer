@@ -100,7 +100,6 @@ class QM9Dataset(Dataset):
         one_hot[np.arange(len(data)),data] = 1
         return one_hot
 
-
     def _get_adjacency(self, n_atoms):
         # Adjust adjacency structure
         seq = np.arange(n_atoms)
