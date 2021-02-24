@@ -73,7 +73,6 @@ def train_epoch(epoch, model, loss_fnc, acu_fnc, dataloader, optimizer, schedule
             if i % FLAGS.log_interval == 0:
                 wandb.log({"loss": to_np(loss_labelled)})
 
-
         if FLAGS.profile and i == 10:
             sys.exit()
 
@@ -118,6 +117,7 @@ def test_epoch(epoch, model, loss_fnc, dataloader, FLAGS, dir_cache_epoch):
     model.eval()
 
     rloss = 0
+
     for i, (g, y) in enumerate(dataloader):
         g = g.to(FLAGS.device)
         y = y.to(FLAGS.device)
@@ -127,13 +127,14 @@ def test_epoch(epoch, model, loss_fnc, dataloader, FLAGS, dir_cache_epoch):
         # __, __, rl = loss_fnc(pred, y, use_mean=False)
         # rloss += rl
 
-        torch.save(pred, os.path.join(dir_cache_epoch, "pred_" + str(i) + ".pt"))
         # print("before: ", pred)
         pred = torch.argmax(pred, dim=1)
         # print("after: ", pred)
         torch.save(pred, os.path.join(dir_cache_epoch, "pred_" + str(i) + ".pt"))
         rloss += loss_fnc(pred, y)
         torch.save(y, os.path.join(dir_cache_epoch, "y_" + str(i) + ".pt"))
+
+    #
 
     print("rloss: ", rloss)
     rloss = rloss.type(torch.float64)
@@ -164,7 +165,7 @@ def main(FLAGS, UNPARSED_ARGV):
     train_dataset = DunbrackDataset(FLAGS.data_address,
                                     FLAGS.task,
                                     mode='train',
-                                    transform=RandomRotation())
+                                    transform=None)
     train_loader = DataLoader(train_dataset,
                               batch_size=FLAGS.batch_size,
                               shuffle=True,
