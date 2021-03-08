@@ -51,7 +51,7 @@ RES_TYPES = np.array(
     ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN', 'GLU', 'GLY', 'HIS', 'ILE', 'LEU', 'LYS', 'MET', 'PHE', 'PRO',
      'SER', 'THR', 'TRP', 'TYR', 'VAL'], dtype='str')
 
-jsons = glob(f'.{JSON_DIR}/*.json')
+jsons = glob(f'{JSON_DIR}/*.json')
 pdb_search_cutoff = 15000
 pdb_environment = []
 
