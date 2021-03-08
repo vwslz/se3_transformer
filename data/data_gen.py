@@ -9,8 +9,6 @@ import pandas as pd
 JSON_DIR = './out_redo_w_rot-cat_v2'
 CLEAN_PDB_DIR = './pdb_clean'
 
-
-
 def read_json(json_file):
     with open(json_file, 'r') as rf:
         return json.load(rf)
@@ -29,7 +27,6 @@ class NpEncoder(json.JSONEncoder):
 def get_pdb(json_file):
     pdb_name = os.path.basename(json_file).split('.')[0]
     return os.path.abspath(f'{CLEAN_PDB_DIR}/{pdb_name}.pdb')
-
 
 RES_ID = []
 RES_NAME = []
@@ -52,7 +49,6 @@ RES_TYPES = np.array(
 
 jsons = glob(f'.{JSON_DIR}/*.json')
 pdb_search_cutoff = 15000
-
 pdb_environment = []
 
 for _idx, res_cat in enumerate(np.tile(RES_CATEGORIES, 5000)):
@@ -80,7 +76,6 @@ for _idx, res_cat in enumerate(np.tile(RES_CATEGORIES, 5000)):
 
     # Get the feature info based on selected source node
     nodes = df[df['rota_category'] == res_cat]['res_num'].values
-
     _pdb_name = os.path.basename(_json).split('.')[0]
     _phi = df['phi'].values
     _psi = df['psi'].values
@@ -120,15 +115,14 @@ for _idx, res_cat in enumerate(np.tile(RES_CATEGORIES, 5000)):
             list_node.append(e[1])
         list_node = list(set(list_node))
         neighbor_dict = dict(zip(list_node, [i for i in range(len(list_node))]))
-
         re_indexed_edge = []
         for e in edge:
             e[0] = neighbor_dict[e[0]]
             e[1] = neighbor_dict[e[1]]
-
         num_edge = len(edge)
         num_nodes = len(list_node)
 
+        # ensuring that all edge info have same dimension across all neighborhoods
         norm_edge = np.zeros((MAX_EDGES, 3))
         for i, v in enumerate(edge):
             norm_edge[i] = v
@@ -136,7 +130,7 @@ for _idx, res_cat in enumerate(np.tile(RES_CATEGORIES, 5000)):
         NUM_EDGE.append([num_edge])
         NUM_NODE.append([num_nodes])
 
-        # ensuring that all node features have same dimension
+        # ensuring that all node features have same dimension across all neighborhoods
         norm_x = np.zeros((MAX_NODES, 3))
         norm_xc = np.zeros((MAX_NODES, 3))
         norm_xn = np.zeros((MAX_NODES, 3))
