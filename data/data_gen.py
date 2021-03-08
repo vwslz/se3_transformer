@@ -74,7 +74,7 @@ for _idx, res_cat in enumerate(np.tile(RES_CATEGORIES, 5000)):
             df = pd.DataFrame.from_dict(json_data)
             _res_cat = df['rota_category'].values
 
-            pdb_search_cutoff += + 1
+            pdb_search_cutoff += 1
             if res_cat in _res_cat:
                 flag = False
 
@@ -113,6 +113,7 @@ for _idx, res_cat in enumerate(np.tile(RES_CATEGORIES, 5000)):
         for dst in neighbor_1_indicies:
             edge.append([data.index[0], dst, 0])
 
+        # reformatting edge info
         list_node = []
         for e in edge:
             list_node.append(e[0])
@@ -135,7 +136,7 @@ for _idx, res_cat in enumerate(np.tile(RES_CATEGORIES, 5000)):
         NUM_EDGE.append([num_edge])
         NUM_NODE.append([num_nodes])
 
-        # getting coord info
+        # ensuring that all node features have same dimension
         norm_x = np.zeros((MAX_NODES, 3))
         norm_xc = np.zeros((MAX_NODES, 3))
         norm_xn = np.zeros((MAX_NODES, 3))
