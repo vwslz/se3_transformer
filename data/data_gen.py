@@ -186,8 +186,8 @@ data_dunbrack["valid"] = {}
 data_dunbrack["test"] = {}
 
 # edit it here
-split_train_valid = 920
-split_valid_test = 1035
+split_train_valid = 12000
+split_valid_test = 13500
 
 for key in data_d.keys():
     data_dunbrack["train"][key] = data_d[key][0:split_train_valid]
