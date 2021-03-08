@@ -18,7 +18,7 @@ class DunbrackDataset(Dataset):
     """Dunbrack dataset."""
     num_edge = 1 # num of edges
     node_feature_size = 27 #
-    num_chi = 97 # add in dataset
+    num_chi = 4 # add in dataset
     input_keys = [
                   'res_id',
                   'phi',
@@ -168,10 +168,8 @@ class DunbrackDataset(Dataset):
         edge = np.asarray(edge, dtype=DTYPE_INT)
 
         # Load target
-        # if (self.mode == 'test'):
         y = self.get('chi', idx).astype(DTYPE_LONG)
-        # else:
-        #     y = self.get_target(idx, normalize=True).astype(DTYPE)
+        # y = self.get_target(idx, normalize=True).astype(DTYPE)
         # y = np.array([y])
         # y = self.to_one_hot(y, self.num_chi).astype(DTYPE_INT)
 
@@ -190,14 +188,13 @@ class DunbrackDataset(Dataset):
         G = dgl.DGLGraph((src, dst))
 
         # Add node features to graph
-        # G.ndata['x'] = torch.tensor(x)  # [num_node,3]
-        # G.ndata['f'] = torch.tensor(np.concatenate([one_hot, phi, psi], -1)[..., None])  # [num_node,22,1]
-        G.ndata['x'] = torch.tensor(np.concatenate([x], -1)[..., None])   # [num_node,5]
-        G.ndata['f'] = torch.tensor(np.concatenate([x_c, x_n, one_hot, chis], -1)[..., None])  # [num_node,128,1]
+        G.ndata['x'] = torch.tensor(x)  # [num_node,3]
+        # G.ndata['f'] = torch.tensor(np.concatenate([phi, psi, one_hot, chis], -1)[..., None])  # [num_node,23,1]
+        G.ndata['f'] = torch.tensor(np.concatenate([x_c, x_n, one_hot, chis], -1)[..., None])  # [num_node,27,1]
 
         # Add edge features to graph
-        G.edata['d'] = torch.tensor(x[dst] - x[src])  # [num_node,3]
-        G.edata['w'] = torch.tensor(w)  # [num_node,1]
+        G.edata['d'] = torch.tensor(x[dst] - x[src])
+        G.edata['w'] = torch.tensor(w)
         return G, y
 
 
