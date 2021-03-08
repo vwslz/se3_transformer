@@ -31,6 +31,13 @@ loss = nn.BCELoss()  # initialize loss function
 
 use_wandb = False
 
+def to_onehot(input, num_classes, toCuda):
+    input = input.reshape(len(input), 1)
+    res = torch.arange(num_classes).reshape(1, num_classes)
+    if toCuda:
+        res = res.cuda()
+    return (input == res).float()
+
 def to_np(x):
     return x.cpu().detach().numpy()
 
@@ -51,27 +58,18 @@ def train_epoch(epoch, model, loss_fnc, acu_fnc, dataloader, optimizer, schedule
         # run model forward and compute loss
         pred = model(g)
 
-        # l1_loss, __, rescale_loss = loss_fnc(pred, y)
-        # backprop
-        # l1_loss.backward()
-        # optimizer.step()
-        # if i % FLAGS.print_interval == 0:
-        #     print(f"[{epoch}|{i}] l1 loss: {l1_loss:.5f} rescale loss: {rescale_loss:.5f} [units]")
-        # # if i % FLAGS.log_interval == 0:
-        # #     wandb.log({"Train L1 loss": to_np(l1_loss),
-        # #                "Rescale loss": to_np(rescale_loss)})
+        racu_label = acu_fnc(pred, y)
+        racu += racu_label
 
-        acu_pred = torch.argmax(pred, dim=1)
-        racu += acu_fnc(acu_pred, y)
-
-        loss_labelled = loss_fnc(pred, y)
-        loss_labelled.backward()
+        losses_labelled = loss_fnc(pred, y)
+        loss_ce = losses_labelled
+        loss_ce.backward()
         optimizer.step()
         if i % FLAGS.print_interval == 0:
-            print(f"[{epoch}|{i}] loss: {loss_labelled:.5f} [units]")
+            print(f"[{epoch}|{i}] loss ce: {loss_ce:.5f} [units]")
         if use_wandb:
             if i % FLAGS.log_interval == 0:
-                wandb.log({"loss": to_np(loss_labelled)})
+                wandb.log({"loss": to_np(loss_ce)})
 
         if FLAGS.profile and i == 10:
             sys.exit()
@@ -94,47 +92,33 @@ def val_epoch(epoch, model, loss_fnc, dataloader, FLAGS):
         g = g.to(FLAGS.device)
         y = y.to(FLAGS.device)
 
-        # # run model forward and compute loss
         pred = model(g).detach()
-        # __, __, rl = loss_fnc(pred, y, use_mean=False)
-        # rloss += rl
 
-        pred = torch.argmax(pred, dim=1)
-        rloss += loss_fnc(pred, y)
+        racu_label = loss_fnc(pred, y)
+        rloss += racu_label
 
     rloss = rloss.type(torch.float64)
     rloss /= FLAGS.val_size
-
-    # print(f"...[{epoch}|val] loss: {rloss:.5f} [units]")
-    # # wandb.log({"Val loss": to_np(rloss)})
 
     print(f"...[{epoch}|val] accuracy: {rloss:.5f} [units]")
     if use_wandb:
         wandb.log({"Val accuracy": to_np(rloss)})
 
-
-def test_epoch(epoch, model, loss_fnc, dataloader, FLAGS, dir_cache_epoch):
+def test_epoch(epoch, model, acu_fnc, dataloader, FLAGS, dir_cache_epoch):
     model.eval()
 
     rloss = 0
-
     for i, (g, y) in enumerate(dataloader):
         g = g.to(FLAGS.device)
         y = y.to(FLAGS.device)
 
-        # run model forward and compute loss
         pred = model(g).detach()
-        # __, __, rl = loss_fnc(pred, y, use_mean=False)
-        # rloss += rl
 
-        # print("before: ", pred)
-        pred = torch.argmax(pred, dim=1)
-        # print("after: ", pred)
+        racu_label = acu_fnc(pred, y)
+        rloss += racu_label
+
         torch.save(pred, os.path.join(dir_cache_epoch, "pred_" + str(i) + ".pt"))
-        rloss += loss_fnc(pred, y)
         torch.save(y, os.path.join(dir_cache_epoch, "y_" + str(i) + ".pt"))
-
-    #
 
     print("rloss: ", rloss)
     rloss = rloss.type(torch.float64)
@@ -142,7 +126,6 @@ def test_epoch(epoch, model, loss_fnc, dataloader, FLAGS, dir_cache_epoch):
     print(f"...[{epoch}|test] accuracy: {rloss:.5f} [units]")
     if use_wandb:
         wandb.log({"Test accuracy": to_np(rloss)})
-
 
 class RandomRotation(object):
     def __init__(self):
@@ -219,27 +202,16 @@ def main(FLAGS, UNPARSED_ARGV):
                                                                eta_min=1e-4)
 
     # Loss function
-    def task_loss(pred, target, use_mean=True):
-        # torch.save(pred, 'pred.pt')
-        # torch.save(target, 'target.pt')
-        l1_loss = torch.sum(torch.abs(pred - target))
-        l2_loss = torch.sum((pred - target) ** 2)
-        if use_mean:
-            l1_loss /= pred.shape[0]
-            l2_loss /= pred.shape[0]
-
-        rescale_loss = train_dataset.norm2units(l1_loss, FLAGS.task)
-        return l1_loss, l2_loss, rescale_loss
-
-    # Loss function
     def task_loss_percentage(pred, target):
+        pred = pred.cpu()
+        target = target.cpu()
+        pred = torch.argmax(pred, dim=1)
         return torch.sum(pred == target)
 
     # Loss function
     def task_loss_labelled(pred, target):
-        # pred: (num_category, )
-        # target: (1, )
-        # output = loss(m(pred), target)  # forward pass
+        pred = pred.cpu()
+        target = target.cpu()
         return nn.CrossEntropyLoss()(pred, target)
 
     # Save path
