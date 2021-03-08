@@ -6,6 +6,10 @@ import numpy as np
 import prody as pdy
 import pandas as pd
 
+import torch
+from torch.utils.data import Dataset, DataLoader
+from torchvision import transforms, utils
+
 JSON_DIR = './out_redo_w_rot-cat_v2'
 CLEAN_PDB_DIR = './pdb_clean'
 
