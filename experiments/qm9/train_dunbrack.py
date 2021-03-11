@@ -26,8 +26,8 @@ import timeit
 
 dir_cache = "cache/"
 
-m = nn.Sigmoid()  # initialize sigmoid layer
-loss = nn.BCELoss()  # initialize loss function
+# m = nn.Sigmoid()  # initialize sigmoid layer
+# loss = nn.BCELoss()  # initialize loss function
 
 use_wandb = False
 
@@ -147,6 +147,7 @@ def main(FLAGS, UNPARSED_ARGV):
     # Prepare data
     train_dataset = DunbrackDataset(FLAGS.data_address,
                                     FLAGS.task,
+                                    FLAGS.num_cat_task,
                                     mode='train',
                                     transform=None)
     train_loader = DataLoader(train_dataset,
@@ -157,6 +158,7 @@ def main(FLAGS, UNPARSED_ARGV):
 
     val_dataset = DunbrackDataset(FLAGS.data_address,
                                   FLAGS.task,
+                                  FLAGS.num_cat_task,
                                   mode='valid')
     val_loader = DataLoader(val_dataset,
                             batch_size=FLAGS.batch_size,
@@ -166,6 +168,7 @@ def main(FLAGS, UNPARSED_ARGV):
 
     test_dataset = DunbrackDataset(FLAGS.data_address,
                                    FLAGS.task,
+                                   FLAGS.num_cat_task,
                                    mode='test')
     test_loader = DataLoader(test_dataset,
                              batch_size=FLAGS.batch_size,
@@ -212,7 +215,8 @@ def main(FLAGS, UNPARSED_ARGV):
     def task_loss_labelled(pred, target):
         pred = pred.cpu()
         target = target.cpu()
-        return nn.CrossEntropyLoss()(pred, target)
+        target = torch.nn.functional.one_hot(target, num_classes=FLAGS.num_cat_task).float()
+        return nn.BCEWithLogitsLoss()(pred, target)
 
     # Save path
     save_path = os.path.join(FLAGS.save_dir, FLAGS.name + '.pt')
@@ -275,6 +279,8 @@ if __name__ == '__main__':
     #         help="QM9 task ['homo, 'mu', 'alpha', 'lumo', 'gap', 'r2', 'zpve', 'u0', 'u298', 'h298', 'g298', 'cv']")
     parser.add_argument('--task', type=str, default='chi',
                         help="Dunbrack task ['chi']")
+    parser.add_argument('--num_cat_task', type=int, default=2,
+                        help="Number of categories of Dunbrack task ['chi']")
 
     # Logging
     parser.add_argument('--name', type=str, default=None,

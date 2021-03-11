@@ -18,7 +18,7 @@ class DunbrackDataset(Dataset):
     """Dunbrack dataset."""
     num_edge = 1 # num of edges
     node_feature_size = 27 #
-    num_chi = 4 # add in dataset
+    num_chi = 2 # add in dataset
     input_keys = [
                   'res_id',
                   'phi',
@@ -37,7 +37,7 @@ class DunbrackDataset(Dataset):
 
     unit_conversion = {'chi': 1.0}
 
-    def __init__(self, file_address: str, task: str, mode: str = 'train',
+    def __init__(self, file_address: str, task: str, num_cat_task: int, mode: str = 'train',
                  transform=None, fully_connected: bool = False):
         """Create a dataset object
 
@@ -53,6 +53,7 @@ class DunbrackDataset(Dataset):
         self.mode = mode
         self.transform = transform
         self.fully_connected = fully_connected
+        self.num_cat_task = num_cat_task  # add in dataset
 
         # Encode and extra bond type for fully connected graphs
         self.num_edge += fully_connected
