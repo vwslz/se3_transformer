@@ -16,10 +16,9 @@ import wandb
 from torch import nn, optim
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
-# from QM9 import QM9Dataset
 from Dunbrack import DunbrackDataset
 
-from experiments.qm9 import models  # as models
+from experiments.dunbrack import models  # as models
 
 import timeit
 
