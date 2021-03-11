@@ -339,6 +339,7 @@ if __name__ == '__main__':
     # Where the magic is
     start_main = timeit.default_timer()
 
+    os.mkdir(dir_cache)
     dir_cache = os.path.join(dir_cache, str(start_main))
     os.mkdir(dir_cache)
 
