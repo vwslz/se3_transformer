@@ -6,6 +6,10 @@ import numpy as np
 import prody as pdy
 import pandas as pd
 
+import torch
+from torch.utils.data import Dataset, DataLoader
+from torchvision import transforms, utils
+
 JSON_DIR = './out_redo_w_rot-cat_v2'
 CLEAN_PDB_DIR = './pdb_clean'
 
@@ -47,7 +51,7 @@ RES_TYPES = np.array(
     ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN', 'GLU', 'GLY', 'HIS', 'ILE', 'LEU', 'LYS', 'MET', 'PHE', 'PRO',
      'SER', 'THR', 'TRP', 'TYR', 'VAL'], dtype='str')
 
-jsons = glob(f'.{JSON_DIR}/*.json')
+jsons = glob(f'{JSON_DIR}/*.json')
 pdb_search_cutoff = 15000
 pdb_environment = []
 
@@ -152,22 +156,42 @@ for _idx, res_cat in enumerate(np.tile(RES_CATEGORIES, 5000)):
             if i == data.index[0]:
                 norm_chis[idx] = 0
 
-        data_d = {
-            'res_id': res_id,
-            'num_node': num_nodes,
-            'num_edge': num_edge,
-            'target': target_chi_category,
-            'chis': norm_chis,  # category
-            'x': norm_x,
-            'x_c': norm_xc,
-            'x_n': norm_xn,
-            'one_hot': norm_resname,
-            'phi': norm_phi,
-            'psi': norm_psi,
-            'edge': norm_edge
-        }
-        pdb_environment.append(data_d)
+        PHI.append(norm_phi)
+        PSI.append(norm_psi)
+        RES_NAME.append(norm_resname)    
+        X.append(norm_x)
+        Xc.append(norm_xc)
+        Xn.append(norm_xn)
+        CHI.append(norm_chis)
 
-with open('./TYROSINE_ALL_NODES.json', 'a') as fp:
-    json.dump(pdb_environment, fp, cls=NpEncoder, indent=4)
-fp.close()
+data_d = {
+    'res_id': RES_ID,
+    'num_node': NUM_NODE,
+    'num_edge': NUM_EDGE,
+    'target': TARGET,
+    'chis': CHI,  # category
+    'x': X,
+    'x_c': Xc,
+    'x_n': Xn,
+    'one_hot': RES_NAME,
+    'phi': PHI,
+    'psi': PSI,
+    'edge': EDGE
+}
+
+data_dunbrack = {}
+
+data_dunbrack["train"] = {}
+data_dunbrack["valid"] = {}
+data_dunbrack["test"] = {}
+
+# edit it here
+split_train_valid = 12000
+split_valid_test = 13500
+
+for key in data_d.keys():
+    data_dunbrack["train"][key] = data_d[key][0:split_train_valid]
+    data_dunbrack["valid"][key] = data_d[key][split_train_valid:split_valid_test]
+    data_dunbrack["test"][key] = data_d[key][split_valid_test:]
+
+torch.save(data_dunbrack, './bb_indp-equiv_res_type-single-node.pt')
