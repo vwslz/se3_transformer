@@ -26,10 +26,11 @@
   ``` 
  * A [Dunbrack dataset](http://dunbrack.fccc.edu/Guoli/pisces_download.php) was used at the onset.  Specifically, the high resolution, 80% sequence-similar [dataset](http://dunbrack.fccc.edu/Guoli/culledpdb_hh/cullpdb_pc80_res2.0_R0.25_d210225_chains22717.gz)
 * Rotamers for each residue in the dataset were categorized based on their `terminal_atom` 
+  - Here's a histogram showing the rmsd of the `terminal_atom`:
 * Node features include:
   - ca_coords (x,y,z)
   - res_type (one_hot representation)
   - chi_category (int)
   - source node is obfuscated)
   - phi/psi (deg) or c_coords/n_coords (vector based on ca_coords)
-* Edge information for trivial experiment don't contain any edge_features (e.g., `[source_node, neighbor_node, edge_feature=0]`)
+* Edge information for experiments don't contain any edge_features (e.g., `[source_node, neighbor_node, edge_feature=0]`)
