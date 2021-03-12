@@ -26,7 +26,8 @@
   ``` 
  * A [Dunbrack dataset](http://dunbrack.fccc.edu/Guoli/pisces_download.php) was used at the onset.  Specifically, the high resolution, 80% sequence-similar [dataset](http://dunbrack.fccc.edu/Guoli/culledpdb_hh/cullpdb_pc80_res2.0_R0.25_d210225_chains22717.gz)
 * Rotamers for each residue in the dataset were categorized based on their `terminal_atom` 
-  - Here's a histogram showing the rmsd of the `terminal_atom`:
+  - 85% of assigned rotamers were <1A from reference, 95% of assigned rotamers were <2.2A from reference
+  - The mean rmsd was 0.5A with a standard deviation of 0.75
 * Node features include:
   - ca_coords (x,y,z)
   - res_type (one_hot representation)
