@@ -148,7 +148,7 @@ def main(FLAGS, UNPARSED_ARGV):
                                     FLAGS.task,
                                     FLAGS.num_cat_task,
                                     mode='train',
-                                    transform=None)
+                                    transform=RandomRotation())
     train_loader = DataLoader(train_dataset,
                               batch_size=FLAGS.batch_size,
                               shuffle=True,
@@ -276,8 +276,8 @@ if __name__ == '__main__':
                         help="Address to structure file")
     # parser.add_argument('--task', type=str, default='homo',
     #         help="QM9 task ['homo, 'mu', 'alpha', 'lumo', 'gap', 'r2', 'zpve', 'u0', 'u298', 'h298', 'g298', 'cv']")
-    parser.add_argument('--task', type=str, default='chi',
-                        help="Dunbrack task ['chi']")
+    parser.add_argument('--task', type=str, default='target',
+                        help="Dunbrack task ['target']")
     parser.add_argument('--num_cat_task', type=int, default=2,
                         help="Number of categories of Dunbrack task ['chi']")
 
