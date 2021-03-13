@@ -17,7 +17,7 @@ DTYPE_LONG = np.long
 class DunbrackDataset(Dataset):
     """Dunbrack dataset."""
     num_edge = 1 # num of edges
-    node_feature_size = 23 #
+    node_feature_size = 27 #
     num_chi = 2 # add in dataset
     input_keys = [
                   'res_id',
@@ -152,11 +152,11 @@ class DunbrackDataset(Dataset):
         # Load node features
         num_node = self.get('num_node', idx)
         x = self.get('x', idx)[:num_node].astype(DTYPE)
-        # x_c = self.get('x_c', idx)[:num_node].astype(DTYPE)
-        # x_n = self.get('x_n', idx)[:num_node].astype(DTYPE)
+        x_c = self.get('x_c', idx)[:num_node].astype(DTYPE)
+        x_n = self.get('x_n', idx)[:num_node].astype(DTYPE)
         one_hot = self.get('one_hot', idx)[:num_node].astype(DTYPE)
-        phi = self.get('phi', idx)[:num_node].astype(DTYPE)
-        psi = self.get('psi', idx)[:num_node].astype(DTYPE)
+        # phi = self.get('phi', idx)[:num_node].astype(DTYPE)
+        # psi = self.get('psi', idx)[:num_node].astype(DTYPE)
         chis = self.get('chis', idx)[:num_node].astype(DTYPE)
         # chis_new = []
         # for i_chis in range(chis.shape[0]):
@@ -190,8 +190,8 @@ class DunbrackDataset(Dataset):
 
         # Add node features to graph
         G.ndata['x'] = torch.tensor(x)  # [num_node,3]
-        G.ndata['f'] = torch.tensor(np.concatenate([phi, psi, one_hot, chis], -1)[..., None])  # [num_node,23,1]
-        # G.ndata['f'] = torch.tensor(np.concatenate([x_c, x_n, one_hot, chis], -1)[..., None])  # [num_node,27,1]
+        # G.ndata['f'] = torch.tensor(np.concatenate([phi, psi, one_hot, chis], -1)[..., None])  # [num_node,23,1]
+        G.ndata['f'] = torch.tensor(np.concatenate([x_c, x_n, one_hot, chis], -1)[..., None])  # [num_node,27,1]
 
         # Add edge features to graph
         G.edata['d'] = torch.tensor(x[dst] - x[src])
