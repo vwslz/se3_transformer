@@ -25,7 +25,7 @@ class DunbrackDataset(Dataset):
                   'psi',
                   'num_node',
                   'num_edge',
-                  # 'target',
+                  'target',
                   'chi',
                   'x',
                   'x_c',
@@ -169,7 +169,7 @@ class DunbrackDataset(Dataset):
         edge = np.asarray(edge, dtype=DTYPE_INT)
 
         # Load target
-        y = self.get('chi', idx).astype(DTYPE_LONG)
+        y = self.get('target', idx).astype(DTYPE_LONG)
         # y = self.get_target(idx, normalize=True).astype(DTYPE)
         # y = np.array([y])
         # y = self.to_one_hot(y, self.num_chi).astype(DTYPE_INT)
