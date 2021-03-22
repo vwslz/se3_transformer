@@ -148,7 +148,8 @@ def main(FLAGS, UNPARSED_ARGV):
                                     FLAGS.task,
                                     FLAGS.num_cat_task,
                                     mode='train',
-                                    transform=RandomRotation())
+                                    transform=RandomRotation(),
+                                    fully_connected=FLAGS.fully_connected)
     train_loader = DataLoader(train_dataset,
                               batch_size=FLAGS.batch_size,
                               shuffle=True,
