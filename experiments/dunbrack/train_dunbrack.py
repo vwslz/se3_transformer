@@ -159,7 +159,8 @@ def main(FLAGS, UNPARSED_ARGV):
     val_dataset = DunbrackDataset(FLAGS.data_address,
                                   FLAGS.task,
                                   FLAGS.num_cat_task,
-                                  mode='valid')
+                                  mode='valid',
+                                  fully_connected=FLAGS.fully_connected)
     val_loader = DataLoader(val_dataset,
                             batch_size=FLAGS.batch_size,
                             shuffle=False,
@@ -169,7 +170,8 @@ def main(FLAGS, UNPARSED_ARGV):
     test_dataset = DunbrackDataset(FLAGS.data_address,
                                    FLAGS.task,
                                    FLAGS.num_cat_task,
-                                   mode='test')
+                                   mode='test',
+                                   fully_connected=FLAGS.fully_connected)
     test_loader = DataLoader(test_dataset,
                              batch_size=FLAGS.batch_size,
                              shuffle=False,
