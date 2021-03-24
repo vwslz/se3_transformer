@@ -124,13 +124,14 @@ class DunbrackDataset(Dataset):
         for i in range(num_node):
             for j in range(num_node):
                 if i != j:
-                    adjacency[(i, j)] = self.num_edge - 1
-
+                    # adjacency[(i, j)] = self.num_edge - 1
+                    adjacency[(i, j)] = 0
+                    
         # Given edges to be given weights, currently set to 0 for all
         # # Add bonded edges
-        # for idx in range(edges.shape[0]):
-        #     adjacency[(edges[idx, 0], edges[idx, 1])] = edges[idx, 2]
-        #     adjacency[(edges[idx, 1], edges[idx, 0])] = edges[idx, 2]
+        for idx in range(edges.shape[0]):
+            adjacency[(edges[idx, 0], edges[idx, 1])] = edges[idx, 2]
+            adjacency[(edges[idx, 1], edges[idx, 0])] = edges[idx, 2]
 
         # Convert to numpy arrays
         src = []
