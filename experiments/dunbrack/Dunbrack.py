@@ -26,7 +26,6 @@ class DunbrackDataset(Dataset):
                   'num_node',
                   'num_edge',
                   'target',
-                  'chi',
                   'x',
                   'x_c',
                   'x_n',
@@ -126,7 +125,7 @@ class DunbrackDataset(Dataset):
                 if i != j:
                     # adjacency[(i, j)] = self.num_edge - 1
                     adjacency[(i, j)] = 0
-                    
+
         # Given edges to be given weights, currently set to 0 for all
         # # Add bonded edges
         for idx in range(edges.shape[0]):
