@@ -94,7 +94,7 @@ for _idx, res_cat in enumerate(np.tile(RES_CATEGORIES, number_of_repeats)):
     _o_xyz = df['o_xyz'].values
     _res_name = df['res_name'].values
     _chis = df['chis'].values
-    _res_cat = df['rota_category'].values
+    _res_cat = df['rota_category'].values # can be change instances of 'rota_category'] <--> 'endgroup_category'
 
     for source_node in nodes[:1]:
         # node features
@@ -104,7 +104,7 @@ for _idx, res_cat in enumerate(np.tile(RES_CATEGORIES, number_of_repeats)):
         phi = data['phi'].values[0]
         psi = data['psi'].values[0]
         chis = data['chis'].values[0]
-        target_chi_category = abs(108 - data['rota_category'].values[0]) # shift the target category to index-1
+        target_chi_category = abs(RES_CATEGORIES[0] - data['rota_category'].values[0]) # shift the target category to index-0
         res_id = _pdb_name + '_' + str(source_node)
         RES_ID.append(res_id)
         TARGET.append(target_chi_category)
