@@ -5,17 +5,19 @@ from glob import glob
 import numpy as np
 import prody as pdy
 import pandas as pd
+import sys
 
 import torch
-from torch.utils.data import Dataset, DataLoader
-from torchvision import transforms, utils
 
-JSON_DIR = './out_redo_w_rot-cat_v2'
-CLEAN_PDB_DIR = './pdb_clean'
+JSON_DIR = sys.argv[1]
+CLEAN_PDB_DIR = sys.argv[2]
+SIZE = sys.argv[3]
+
 
 def read_json(json_file):
     with open(json_file, 'r') as rf:
         return json.load(rf)
+
 
 class NpEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -27,6 +29,7 @@ class NpEncoder(json.JSONEncoder):
             return obj.tolist()
         else:
             return super(NpEncoder, self).default(obj)
+
 
 def get_pdb(json_file):
     pdb_name = os.path.basename(json_file).split('.')[0]
@@ -46,16 +49,18 @@ TARGET = [] # TARGET CATEGORY
 EDGE = []
 MAX_EDGES = 49
 MAX_NODES = 50
-RES_CATEGORIES = np.array([109, 110, 111]) # Rotamer categories for Tyrosine
+RES_CATEGORIES = np.array([109, 110]) # Rotamer categories for Tyrosine
 RES_TYPES = np.array(
     ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN', 'GLU', 'GLY', 'HIS', 'ILE', 'LEU', 'LYS', 'MET', 'PHE', 'PRO',
      'SER', 'THR', 'TRP', 'TYR', 'VAL'], dtype='str')
 
 jsons = glob(f'{JSON_DIR}/*.json')
-pdb_search_cutoff = 15000
-pdb_environment = []
+pdb_search_cutoff = 20000 # naive way of generating a balanced dataset (we only have 26,000 PDBs)
+number_of_repeats = SIZE / RES_CATEGORIES.shape[0] # naive way of generating a balanced dataset
 
-for _idx, res_cat in enumerate(np.tile(RES_CATEGORIES, 5000)):
+pdb_environment = []
+# a temporary and naive way of generating a balanced dataset
+for _idx, res_cat in enumerate(np.tile(RES_CATEGORIES, number_of_repeats)):
     # Searching for source nodes
     _json = jsons[_idx]
     json_data = read_json(_json)
@@ -146,8 +151,8 @@ for _idx, res_cat in enumerate(np.tile(RES_CATEGORIES, 5000)):
         for idx, i in enumerate(list_node):
             i = i.astype(int)
             norm_x[idx] = [_ca_xyz[i][0], _ca_xyz[i][1], _ca_xyz[i][2]]
-            norm_xc[idx] = [_c_xyz[i][0], _c_xyz[i][1], _c_xyz[i][2]]
-            norm_xn[idx] = [_n_xyz[i][0], _n_xyz[i][1], _n_xyz[i][2]]
+            norm_xc[idx] = [_c_xyz[i][0], _c_xyz[i][1], _c_xyz[i][2]] # can be modified to reflect position relative to CA
+            norm_xn[idx] = [_n_xyz[i][0], _n_xyz[i][1], _n_xyz[i][2]] # can be modified to reflect position relative to CA
             norm_phi[idx] = _phi[i]
             norm_psi[idx] = _psi[i]
             t = RES_TYPES == _res_name[i]
@@ -186,12 +191,12 @@ data_dunbrack["valid"] = {}
 data_dunbrack["test"] = {}
 
 # edit it here
-split_train_valid = 12000
-split_valid_test = 13500
+split_train_valid = SIZE*0.9
+split_valid_test = SIZE*0.95
 
 for key in data_d.keys():
     data_dunbrack["train"][key] = data_d[key][0:split_train_valid]
     data_dunbrack["valid"][key] = data_d[key][split_train_valid:split_valid_test]
     data_dunbrack["test"][key] = data_d[key][split_valid_test:]
 
-torch.save(data_dunbrack, './bb_indp-equiv_res_type-single-node.pt')
+torch.save(data_dunbrack, './out.pt')

@@ -1,5 +1,5 @@
 
-![experiments](https://github.com/vwslz/se3_transformer/blob/master/data/dl-experiments.png)
+![experiments](https://github.com/vwslz/se3_transformer/blob/master/data/misc/dl-experiments.png)
 * Backbone indepedent rotamer coordinate files were collected from: http://kinemage.biochem.duke.edu/databases/rotkins.php
 * Rotamers for each residue were clustered at 2A based on their chi2 `terminal atom` (e.g.,):
  
