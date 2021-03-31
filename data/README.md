@@ -34,3 +34,4 @@
   - chi_category (int) (source node is obfuscated)
   - phi/psi (deg) or c_coords/n_coords (vector based on ca_coords)
 * Edge information for experiments don't contain any edge_features (e.g., `[source_node, neighbor_node, edge_feature=0]`)
+* Example dataset for tyrosine is here: https://drive.google.com/file/d/12nA8Bcb6JuUjPSwyDgsFz3xnDrh2F811/view?usp=sharing
