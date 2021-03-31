@@ -18,7 +18,7 @@ class DunbrackDataset(Dataset):
     """Dunbrack dataset."""
     num_edge = 1 # num of edges
     node_feature_size = 23 #
-    num_chi = 2 # add in dataset
+    num_cat_task = 2 # add in dataset
     input_keys = [
                   'res_id',
                   'num_node',
@@ -184,7 +184,7 @@ class DunbrackDataset(Dataset):
         y = self.get('target', idx).astype(DTYPE_LONG)
         # y = self.get_target(idx, normalize=True).astype(DTYPE)
         # y = np.array([y])
-        # y = self.to_one_hot(y, self.num_chi).astype(DTYPE_INT)
+        # y = self.to_one_hot(y, self.num_cat_task).astype(DTYPE_INT)
 
         # Augmentation on the coordinates
         if self.transform:

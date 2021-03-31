@@ -195,7 +195,7 @@ def main(FLAGS, UNPARSED_ARGV):
                                              FLAGS.num_channels,
                                              num_nlayers=FLAGS.num_nlayers,
                                              num_degrees=FLAGS.num_degrees,
-                                             num_chis=train_dataset.num_chi,
+                                             num_cat_task=train_dataset.num_cat_task,
                                              edge_dim=train_dataset.num_edge,
                                              div=FLAGS.div,
                                              pooling=FLAGS.pooling,
