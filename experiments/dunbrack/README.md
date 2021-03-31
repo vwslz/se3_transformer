@@ -5,6 +5,8 @@ Unzip the dataset under dataset directory. This directory is mainly from QM9 dir
 ## Experiments
 [Log on Wandb](https://wandb.ai/vwslz/equivariant-attention-dunbrack?workspace=user-vwslz)
 
+[Result Comparison](https://docs.google.com/spreadsheets/d/1gb_oLTwC3zbwXrm2OB2Q5SfGFSU6cdRtMmb7RHTa1gg/edit?usp=sharing)
+
 ## Training
 
 To train the model, run this command:
