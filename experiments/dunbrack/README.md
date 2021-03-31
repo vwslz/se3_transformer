@@ -13,11 +13,11 @@ To train the model, run this command:
 
 for MET-ROTA-5:
 ```train
-python train_dunbrack.py --model SE3Transformer --num_epochs 50 --num_degrees 2 --num_layers 7 --num_channels 32 --num_workers 4 --div 2 --pooling max --head 8  --print_interval 50 --name dunbrack-met --batch_size 16 --data_address 14875-MET-TRIVIAL_ROT-5_03302021.pt --task target_cat --num_cat_task 5 --coordinate_type pp --lr 0.001 --use_wandb
+python train_dunbrack.py --model SE3Transformer --num_epochs 50 --num_degrees 2 --num_layers 7 --num_channels 32 --num_workers 4 --div 2 --pooling max --head 8  --print_interval 50 --name dunbrack-met --batch_size 16 --data_address 13750_MET-TRIVIAL_ROTA-5_03312021.pt --task target_cat --num_cat_task 5 --coordinate_type pp --lr 0.001 --use_wandb
 ```
 for TYR-ROTA-2:
 ```train
-python train_dunbrack.py --model SE3Transformer --num_epochs 50 --num_degrees 2 --num_layers 7 --num_channels 32 --num_workers 4 --div 2 --pooling max --head 8 --print_interval 50 --name dunbrack-tyr --batch_size 32 --data_address 44k_TYR-TRIVIAL_ROTA-2_03302021.pt --task target_cat --num_cat_task 2 --coordinate_type pp --lr 0.001 --use_wandb
+python train_dunbrack.py --model SE3Transformer --num_epochs 50 --num_degrees 2 --num_layers 7 --num_channels 32 --num_workers 4 --div 2 --pooling max --head 8 --print_interval 50 --name dunbrack-tyr --batch_size 32 --data_address 44000_TYR-TRIVIAL_ROTA-2_03312021.pt --task target_cat --num_cat_task 2 --coordinate_type pp --lr 0.001 --use_wandb
 ```
 
 ## Parameters
