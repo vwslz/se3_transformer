@@ -148,6 +148,8 @@ def main(FLAGS, UNPARSED_ARGV):
                                     FLAGS.task,
                                     FLAGS.num_cat_task,
                                     mode='train',
+                                    embedding=FLAGS.embedding,
+                                    coordinate_type=FLAGS.coordinate_type,
                                     transform=RandomRotation(),
                                     fully_connected=FLAGS.fully_connected)
     train_loader = DataLoader(train_dataset,
@@ -160,6 +162,8 @@ def main(FLAGS, UNPARSED_ARGV):
                                   FLAGS.task,
                                   FLAGS.num_cat_task,
                                   mode='valid',
+                                  embedding=FLAGS.embedding,
+                                  coordinate_type=FLAGS.coordinate_type,
                                   fully_connected=FLAGS.fully_connected)
     val_loader = DataLoader(val_dataset,
                             batch_size=FLAGS.batch_size,
@@ -171,7 +175,10 @@ def main(FLAGS, UNPARSED_ARGV):
                                    FLAGS.task,
                                    FLAGS.num_cat_task,
                                    mode='test',
-                                   fully_connected=FLAGS.fully_connected)
+                                   embedding=FLAGS.embedding,
+                                   coordinate_type=FLAGS.coordinate_type,
+                                   fully_connected=FLAGS.fully_connected
+                                   )
     test_loader = DataLoader(test_dataset,
                              batch_size=FLAGS.batch_size,
                              shuffle=False,
@@ -280,9 +287,13 @@ if __name__ == '__main__':
     # parser.add_argument('--task', type=str, default='homo',
     #         help="QM9 task ['homo, 'mu', 'alpha', 'lumo', 'gap', 'r2', 'zpve', 'u0', 'u298', 'h298', 'g298', 'cv']")
     parser.add_argument('--task', type=str, default='target',
-                        help="Dunbrack task ['target']")
+                        help="Dunbrack task ['target_cat' or 'target_coord']")
     parser.add_argument('--num_cat_task', type=int, default=2,
                         help="Number of categories of Dunbrack task ['chi']")
+    parser.add_argument('--embedding', type=str, default="rota",
+                        help="Embedding by rota / eg")
+    parser.add_argument('--coordinate_type', type=str, default="pp",
+                        help="coordinate type of pp / cn")
 
     # Logging
     parser.add_argument('--name', type=str, default=None,

@@ -21,23 +21,17 @@ class DunbrackDataset(Dataset):
     num_chi = 2 # add in dataset
     input_keys = [
                   'res_id',
-                  'phi',
-                  'psi',
                   'num_node',
                   'num_edge',
-                  'target',
                   'x',
-                  'x_c',
-                  'x_n',
                   'one_hot',
-                  'chis',
                   'edge'
                   ]
 
     unit_conversion = {'chi': 1.0}
 
     def __init__(self, file_address: str, task: str, num_cat_task: int, mode: str = 'train',
-                 transform=None, fully_connected: bool = False):
+                 embedding: str = 'rota', coordinate_type: str = 'pp', transform=None, fully_connected: bool = False):
         """Create a dataset object
 
         Args:
@@ -50,12 +44,18 @@ class DunbrackDataset(Dataset):
         self.file_address = file_address
         self.task = task
         self.mode = mode
+        self.embedding = embedding
+        self.coordinate_type = coordinate_type
         self.transform = transform
         self.fully_connected = fully_connected
         self.num_cat_task = num_cat_task  # add in dataset
 
         # Encode and extra bond type for fully connected graphs
         self.num_edge += fully_connected
+        if coordinate_type == 'pp':
+            self.node_feature_size = 23
+        elif coordinate_type == 'cn':
+            self.node_feature_size = 27
 
         self.load_data()
         self.len = len(self.targets)
@@ -65,12 +65,31 @@ class DunbrackDataset(Dataset):
         return self.len
 
     def load_data(self):
+
         # Load dict and select train/valid/test split
         data = torch.load(self.file_address)
         data = data[self.mode]
 
         # Filter out the inputs
         self.inputs = {key: np.array(data[key]) for key in self.input_keys}
+
+        # if self.predict == "cat":
+        #     self.inputs['target'] = np.array(data['target_cat'])
+        # elif self.predict == "coord":
+        #     self.inputs['target'] = np.array(data['target_coord'])
+        if self.coordinate_type == 'pp':
+            self.inputs['phi'] = np.array(data['phi'])
+            self.inputs['psi'] = np.array(data['psi'])
+        elif self.coordinate_type == 'cn':
+            self.inputs['x_c'] = np.array(data['x_c'])
+            self.inputs['x_n'] = np.array(data['x_n'])
+
+        self.inputs['target'] = np.array(data[self.task])
+
+        if self.embedding == "rota":
+            self.inputs['targets'] = np.array(data['chis'])
+        elif self.embedding == "eg":
+            self.inputs['targets'] = np.array(data['egs'])
 
         # Filter out the targets and population stats
         self.targets = data[self.task]
@@ -153,16 +172,8 @@ class DunbrackDataset(Dataset):
         # Load node features
         num_node = self.get('num_node', idx)
         x = self.get('x', idx)[:num_node].astype(DTYPE)
-        # x_c = self.get('x_c', idx)[:num_node].astype(DTYPE)
-        # x_n = self.get('x_n', idx)[:num_node].astype(DTYPE)
         one_hot = self.get('one_hot', idx)[:num_node].astype(DTYPE)
-        phi = self.get('phi', idx)[:num_node].astype(DTYPE)
-        psi = self.get('psi', idx)[:num_node].astype(DTYPE)
-        chis = self.get('chis', idx)[:num_node].astype(DTYPE)
-        # chis_new = []
-        # for i_chis in range(chis.shape[0]):
-        #     chis_new.append(self.to_one_hot(chis[i_chis], self.num_chi)[0])
-        # chis_new = np.array(chis_new).astype(DTYPE)
+        targets_neighbour = self.get('targets', idx)[:num_node].astype(DTYPE)
 
         # Load edge features
         num_edge = self.get('num_edge', idx)
@@ -191,8 +202,14 @@ class DunbrackDataset(Dataset):
 
         # Add node features to graph
         G.ndata['x'] = torch.tensor(x)  # [num_node,3]
-        G.ndata['f'] = torch.tensor(np.concatenate([phi, psi, one_hot, chis], -1)[..., None])  # [num_node,23,1]
-        # G.ndata['f'] = torch.tensor(np.concatenate([d_c, d_n, one_hot, chis], -1)[..., None])  # [num_node,27,1]
+        if self.coordinate_type == 'pp':
+            phi = self.get('phi', idx)[:num_node].astype(DTYPE)
+            psi = self.get('psi', idx)[:num_node].astype(DTYPE)
+            G.ndata['f'] = torch.tensor(np.concatenate([phi, psi, one_hot, targets_neighbour], -1)[..., None])
+        elif self.coordinate_type == 'cn':
+            x_c = self.get('x_c', idx)[:num_node].astype(DTYPE)
+            x_n = self.get('x_n', idx)[:num_node].astype(DTYPE)
+            G.ndata['f'] = torch.tensor(np.concatenate([x_c, x_n, one_hot, targets_neighbour], -1)[..., None])
 
         # Add edge features to graph
         G.edata['d'] = torch.tensor(x[dst] - x[src])
