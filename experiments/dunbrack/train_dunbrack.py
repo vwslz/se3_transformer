@@ -24,7 +24,7 @@ import timeit
 
 
 dir_cache = "cache/"
-
+LEN_ERROR = 2.0
 # m = nn.Sigmoid()  # initialize sigmoid layer
 # loss = nn.BCELoss()  # initialize loss function
 
@@ -57,13 +57,12 @@ def train_epoch(epoch, model, loss_fnc, acu_fnc, dataloader, optimizer, schedule
         # run model forward and compute loss
         pred = model(g)
 
-        racu_label = acu_fnc(pred, y)
-        racu += racu_label
+        racu += acu_fnc(pred, y)
 
-        losses_labelled = loss_fnc(pred, y)
-        loss_ce = losses_labelled
+        loss_ce = loss_fnc(pred, y)
         loss_ce.backward()
         optimizer.step()
+
         if i % FLAGS.print_interval == 0:
             print(f"[{epoch}|{i}] loss ce: {loss_ce:.5f} [units]")
         if use_wandb:
@@ -78,7 +77,7 @@ def train_epoch(epoch, model, loss_fnc, acu_fnc, dataloader, optimizer, schedule
     racu = racu.type(torch.float64)
     racu /= FLAGS.train_size
 
-    print(f"...[{epoch}|train] accuracy: {racu:.5f} [units]")
+    print(f"...[{epoch}|train]: {racu:.5f} [units]")
     if use_wandb:
         wandb.log({"Train accuracy": to_np(racu)})
 
@@ -87,22 +86,22 @@ def val_epoch(epoch, model, loss_fnc, dataloader, FLAGS):
     model.eval()
 
     rloss = 0
+    rloss_l2 = 0
     for i, (g, y) in enumerate(dataloader):
         g = g.to(FLAGS.device)
         y = y.to(FLAGS.device)
 
         pred = model(g).detach()
 
-        racu_label = loss_fnc(pred, y)
-        rloss += racu_label
+        rloss += loss_fnc(pred, y)
 
     rloss = rloss.type(torch.float64)
     rloss /= FLAGS.val_size
 
-    print(f"...[{epoch}|val] accuracy: {rloss:.5f} [units]")
+    print(f"...[{epoch}|val]: {rloss:.5f} [units]")
+
     if use_wandb:
         wandb.log({"Val accuracy": to_np(rloss)})
-
 def test_epoch(epoch, model, acu_fnc, dataloader, FLAGS, dir_cache_epoch):
     model.eval()
 
@@ -113,8 +112,7 @@ def test_epoch(epoch, model, acu_fnc, dataloader, FLAGS, dir_cache_epoch):
 
         pred = model(g).detach()
 
-        racu_label = acu_fnc(pred, y)
-        rloss += racu_label
+        rloss += acu_fnc(pred, y)
 
         torch.save(pred, os.path.join(dir_cache_epoch, "pred_" + str(i) + ".pt"))
         torch.save(y, os.path.join(dir_cache_epoch, "y_" + str(i) + ".pt"))
@@ -122,7 +120,7 @@ def test_epoch(epoch, model, acu_fnc, dataloader, FLAGS, dir_cache_epoch):
     print("rloss: ", rloss)
     rloss = rloss.type(torch.float64)
     rloss /= FLAGS.test_size
-    print(f"...[{epoch}|test] accuracy: {rloss:.5f} [units]")
+    print(f"...[{epoch}|test]: {rloss:.5f} [units]")
     if use_wandb:
         wandb.log({"Test accuracy": to_np(rloss)})
 
@@ -146,7 +144,7 @@ def main(FLAGS, UNPARSED_ARGV):
     # Prepare data
     train_dataset = DunbrackDataset(FLAGS.data_address,
                                     FLAGS.task,
-                                    FLAGS.num_cat_task,
+                                    FLAGS.dim_output,
                                     mode='train',
                                     embedding=FLAGS.embedding,
                                     coordinate_type=FLAGS.coordinate_type,
@@ -160,7 +158,7 @@ def main(FLAGS, UNPARSED_ARGV):
 
     val_dataset = DunbrackDataset(FLAGS.data_address,
                                   FLAGS.task,
-                                  FLAGS.num_cat_task,
+                                  FLAGS.dim_output,
                                   mode='valid',
                                   embedding=FLAGS.embedding,
                                   coordinate_type=FLAGS.coordinate_type,
@@ -173,7 +171,7 @@ def main(FLAGS, UNPARSED_ARGV):
 
     test_dataset = DunbrackDataset(FLAGS.data_address,
                                    FLAGS.task,
-                                   FLAGS.num_cat_task,
+                                   FLAGS.dim_output,
                                    mode='test',
                                    embedding=FLAGS.embedding,
                                    coordinate_type=FLAGS.coordinate_type,
@@ -195,7 +193,7 @@ def main(FLAGS, UNPARSED_ARGV):
                                              FLAGS.num_channels,
                                              num_nlayers=FLAGS.num_nlayers,
                                              num_degrees=FLAGS.num_degrees,
-                                             num_cat_task=train_dataset.num_cat_task,
+                                             dim_output=train_dataset.dim_output,
                                              edge_dim=train_dataset.num_edge,
                                              div=FLAGS.div,
                                              pooling=FLAGS.pooling,
@@ -221,11 +219,28 @@ def main(FLAGS, UNPARSED_ARGV):
         return torch.sum(pred == target)
 
     # Loss function
-    def task_loss_labelled(pred, target):
+    def task_loss_cat(pred, target):
         pred = pred.cpu()
         target = target.cpu()
-        target = torch.nn.functional.one_hot(target, num_classes=FLAGS.num_cat_task).float()
+        target = torch.nn.functional.one_hot(target, num_classes=FLAGS.dim_output).float()
         return nn.BCEWithLogitsLoss()(pred, target)
+
+    # Loss function
+    def task_loss_coord(pred, target, use_mean = True):
+        pred = pred.cpu().float()
+        target = target.cpu().float()
+        # loss = torch.sqrt(torch.sum(torch.square(torch.abs(pred - target)), dim = 1))
+        # loss = torch.sum(loss)
+        # if use_mean:
+        #     loss /= pred.shape[0]
+        # return loss
+        return torch.sqrt(nn.MSELoss()(pred, target))
+
+    def task_auc_coord(pred, target):
+        pred = pred.cpu().float()
+        target = target.cpu().float()
+        distances = torch.sqrt(torch.sum(torch.square(torch.abs(pred - target)), dim = 1))
+        return torch.sum(distances<LEN_ERROR)
 
     # Save path
     save_path = os.path.join(FLAGS.save_dir, FLAGS.name + '.pt')
@@ -242,9 +257,14 @@ def main(FLAGS, UNPARSED_ARGV):
         dir_cache_epoch = os.path.join(dir_cache, str(epoch))
         os.mkdir(dir_cache_epoch)
 
-        train_epoch(epoch, model, task_loss_labelled, task_loss_percentage, train_loader, optimizer, scheduler, FLAGS)
-        val_epoch(epoch, model, task_loss_percentage, val_loader, FLAGS)
-        test_epoch(epoch, model, task_loss_percentage, test_loader, FLAGS, dir_cache_epoch)
+        if FLAGS.task == "target_cat":
+            train_epoch(epoch, model, task_loss_cat, task_loss_percentage, train_loader, optimizer, scheduler, FLAGS)
+            val_epoch(epoch, model, task_loss_percentage, val_loader, FLAGS)
+            test_epoch(epoch, model, task_loss_percentage, test_loader, FLAGS, dir_cache_epoch)
+        elif FLAGS.task == "target_coord":
+            train_epoch(epoch, model, task_loss_coord, task_auc_coord, train_loader, optimizer, scheduler, FLAGS)
+            val_epoch(epoch, model, task_auc_coord, val_loader, FLAGS)
+            test_epoch(epoch, model, task_auc_coord, test_loader, FLAGS, dir_cache_epoch)
 
         stop_epoch = timeit.default_timer()
         print('Time for epoch: ', stop_epoch - start_epoch)
@@ -288,8 +308,8 @@ if __name__ == '__main__':
     #         help="QM9 task ['homo, 'mu', 'alpha', 'lumo', 'gap', 'r2', 'zpve', 'u0', 'u298', 'h298', 'g298', 'cv']")
     parser.add_argument('--task', type=str, default='target',
                         help="Dunbrack task ['target_cat' or 'target_coord']")
-    parser.add_argument('--num_cat_task', type=int, default=2,
-                        help="Number of categories of Dunbrack task ['chi']")
+    parser.add_argument('--dim_output', type=int, default=3,
+                        help="Number of categories of Dunbrack task") # target_coord: dim_output to be 3
     parser.add_argument('--embedding', type=str, default="rota",
                         help="Embedding by rota / eg")
     parser.add_argument('--coordinate_type', type=str, default="pp",
