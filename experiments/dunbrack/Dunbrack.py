@@ -18,7 +18,7 @@ class DunbrackDataset(Dataset):
     """Dunbrack dataset."""
     num_edge = 1 # num of edges
     node_feature_size = 23 #
-    num_cat_task = 2 # add in dataset
+    dim_output = 2 # add in dataset
     input_keys = [
                   'res_id',
                   'num_node',
@@ -30,7 +30,7 @@ class DunbrackDataset(Dataset):
 
     unit_conversion = {'chi': 1.0}
 
-    def __init__(self, file_address: str, task: str, num_cat_task: int, mode: str = 'train',
+    def __init__(self, file_address: str, task: str, dim_output: int, mode: str = 'train',
                  embedding: str = 'rota', coordinate_type: str = 'pp', transform=None, fully_connected: bool = False):
         """Create a dataset object
 
@@ -48,7 +48,7 @@ class DunbrackDataset(Dataset):
         self.coordinate_type = coordinate_type
         self.transform = transform
         self.fully_connected = fully_connected
-        self.num_cat_task = num_cat_task  # add in dataset
+        self.dim_output = dim_output  # add in dataset
 
         # Encode and extra bond type for fully connected graphs
         self.num_edge += fully_connected
@@ -95,24 +95,24 @@ class DunbrackDataset(Dataset):
         self.targets = data[self.task]
 
         # TODO: use the training stats unlike the other papers
-        self.mean = np.mean(self.targets)
-        self.std = np.std(self.targets)
+        # self.mean = np.mean(self.targets)
+        # self.std = np.std(self.targets)
 
-    def get_target(self, idx, normalize=True):
-        target = self.targets[idx]
-        if normalize:
-            target = (target - self.mean) / self.std
-        return target
+    # def get_target(self, idx, normalize=True):
+    #     target = self.targets[idx]
+    #     if normalize:
+    #         target = (target - self.mean) / self.std
+    #     return target
 
-    def norm2units(self, x, denormalize=True, center=True):
-        # Convert from normalized to representation
-        if denormalize:
-            x = x * self.std
-            # Add the mean: not necessary for error computations
-            if not center:
-                x += self.mean
-        x = self.unit_conversion[self.task] * x
-        return x
+    # def norm2units(self, x, denormalize=True, center=True):
+    #     # Convert from normalized to representation
+    #     if denormalize:
+    #         x = x * self.std
+    #         # Add the mean: not necessary for error computations
+    #         if not center:
+    #             x += self.mean
+    #     x = self.unit_conversion[self.task] * x
+    #     return x
 
     def to_one_hot(self, data, num_classes):
         one_hot = np.zeros(list(data.shape) + [num_classes])
@@ -181,10 +181,15 @@ class DunbrackDataset(Dataset):
         edge = np.asarray(edge, dtype=DTYPE_INT)
 
         # Load target
-        y = self.get('target', idx).astype(DTYPE_LONG)
+        y = self.get('target', idx)
+        if "coord" in self.task:
+            y = y.astype(DTYPE)
+            # y = y - x[edge[0][0]]
+        else:
+            y = y.astype(DTYPE_LONG)
         # y = self.get_target(idx, normalize=True).astype(DTYPE)
         # y = np.array([y])
-        # y = self.to_one_hot(y, self.num_cat_task).astype(DTYPE_INT)
+        # y = self.to_one_hot(y, self.dim_output).astype(DTYPE_INT)
 
         # Augmentation on the coordinates
         if self.transform:
