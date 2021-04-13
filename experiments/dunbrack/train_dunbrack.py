@@ -30,6 +30,9 @@ LEN_ERROR = 2.0
 
 use_wandb = False
 
+def RMSELoss(yhat,y):
+    return torch.sqrt(torch.mean((yhat-y)**2))
+
 def to_onehot(input, num_classes, toCuda):
     input = input.reshape(len(input), 1)
     res = torch.arange(num_classes).reshape(1, num_classes)
@@ -242,13 +245,9 @@ def main(FLAGS, UNPARSED_ARGV):
     def task_loss_coord(pred, target, use_mean = True):
         pred = pred.cpu().float()
         target = target.cpu().float()
-        # loss = torch.sqrt(torch.sum(torch.square(torch.abs(pred - target)), dim = 1))
-        # loss = torch.sum(loss)
-        # if use_mean:
-        #     loss /= pred.shape[0]
-        # return loss
-        return nn.MSELoss()(pred, target)
-        # return torch.sqrt(nn.MSELoss()(pred, target))
+
+        # return nn.MSELoss()(pred, target)
+        return RMSELoss(pred, target)
 
     def task_auc_coord(pred, target):
         pred = pred.cpu().float()
