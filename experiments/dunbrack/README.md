@@ -9,7 +9,7 @@ Unzip the dataset under dataset directory. This directory is mainly from QM9 dir
 
 ## Training
 
-To train the model, run this command:
+To train the model for the category, run this command:
 
 for MET-ROTA-5:
 ```train
@@ -23,6 +23,11 @@ python train_dunbrack.py --model SE3Transformer --num_epochs 50 --num_degrees 2 
 - eg
 ```train
 python train_dunbrack.py --model SE3Transformer --num_epochs 50 --num_degrees 2 --num_layers 7 --num_channels 32 --num_workers 4 --div 2 --pooling max --head 8 --print_interval 50 --name dunbrack-tyr --batch_size 32 --data_address 44000_TYR-TRIVIAL_EG-2_03312021.pt --task target_cat  --dim_output 2 --embedding eg --coordinate_type pp --lr 0.001 --use_wandb
+```
+
+To train the model for the coordinate, run this command:
+```
+python train_dunbrack.py --model SE3Transformer --num_epochs 50 --num_layers 7 --num_channels 32 --num_workers 4 --div 2 --pooling max --head 8 --print_interval 50 --num_degrees 2 --name dunbrack-tyr --batch_size 32 --data_address 44000_TYR-TRIVIAL_EG-2_04032021.pt --task target_coord --dim_output 1 --embedding eg --coordinate_type cn --lr 0.001 --use_wandb
 ```
 
 ## Parameters
