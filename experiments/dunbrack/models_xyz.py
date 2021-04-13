@@ -7,6 +7,7 @@ from dgl.nn.pytorch import GraphConv, NNConv
 from torch import nn
 from torch.nn import functional as F
 from typing import Dict, Tuple, List
+import dgl
 
 from equivariant_attention.modules import GConvSE3, GNormSE3, get_basis_and_r, GSE3Res, GMaxPooling, GAvgPooling
 from equivariant_attention.fibers import Fiber
@@ -14,8 +15,8 @@ from equivariant_attention.fibers import Fiber
 
 class TFN(nn.Module):
     """SE(3) equivariant GCN"""
-    def __init__(self, num_layers: int, atom_feature_size: int, 
-                 num_channels: int, num_nlayers: int=1, num_degrees: int=4, 
+    def __init__(self, num_layers: int, atom_feature_size: int,
+                 num_channels: int, num_nlayers: int=1, num_degrees: int=4,
                  edge_dim: int=4, **kwargs):
         super().__init__()
         # Build the network
@@ -75,7 +76,7 @@ class TFN(nn.Module):
 
 class SE3Transformer(nn.Module):
     """SE(3) equivariant GCN with attention"""
-    def __init__(self, num_layers: int, atom_feature_size: int, 
+    def __init__(self, num_layers: int, atom_feature_size: int,
                  num_channels: int, num_nlayers: int=1, num_degrees: int=4, dim_output: int = 3,
                  edge_dim: int=4, div: float=4, pooling: str='avg', n_heads: int=1, **kwargs):
         super().__init__()
@@ -90,9 +91,10 @@ class SE3Transformer(nn.Module):
         self.n_heads = n_heads
         self.dim_output = dim_output
 
-        self.fibers = {'in': Fiber(1, atom_feature_size),
+        # atom_feature_size of scalars and 2 of vectors
+        self.fibers = {'in': Fiber(dictionary={0: atom_feature_size, 1: 2}),
                        'mid': Fiber(num_degrees, self.num_channels),
-                       'out': Fiber(1, num_degrees*self.num_channels)}
+                       'out': Fiber(2, 1)}
         blocks = self._build_gcn(self.fibers, dim_output)
         self.Gblock, self.FCblock = blocks
         print(self.Gblock)
@@ -103,38 +105,40 @@ class SE3Transformer(nn.Module):
         Gblock = []
         fin = fibers['in']
         for i in range(self.num_layers):
-            Gblock.append(GSE3Res(fin, fibers['mid'], edge_dim=self.edge_dim, 
+            Gblock.append(GSE3Res(fin, fibers['mid'], edge_dim=self.edge_dim,
                                   div=self.div, n_heads=self.n_heads))
             Gblock.append(GNormSE3(fibers['mid']))
             fin = fibers['mid']
         Gblock.append(GConvSE3(fibers['mid'], fibers['out'], self_interaction=True, edge_dim=self.edge_dim))
 
-        # Pooling
-        if self.pooling == 'avg':
-            Gblock.append(GAvgPooling())
-        elif self.pooling == 'max':
-            Gblock.append(GMaxPooling())
+        Finblock = []
+        Finblock.append(OutEncoder())
 
-        # FC layers
-        FCblock = []
-        FCblock.append(nn.Linear(self.fibers['out'].n_features, self.fibers['out'].n_features))
-        FCblock.append(nn.ReLU(inplace=True))
-        # FCblock.append(nn.Sigmoid())
-        # FCblock.append(nn.Softmax())
-        FCblock.append(nn.Linear(self.fibers['out'].n_features, out_dim))
-
-        return nn.ModuleList(Gblock), nn.ModuleList(FCblock)
+        return nn.ModuleList(Gblock), nn.ModuleList(Finblock)
 
     def forward(self, G):
         # Compute equivariant weight basis from relative positions
         basis, r = get_basis_and_r(G, self.num_degrees-1)
 
         # encoder (equivariant layers)
-        h = {'0': G.ndata['f']}
+        h = {'0': G.ndata['f'], '1': torch.stack([G.ndata['x_n'], G.ndata['x_c']], dim=1)}
         for layer in self.Gblock:
             h = layer(h, G=G, r=r, basis=basis)
 
         for layer in self.FCblock:
-            h = layer(h)
+            h = layer(h, G)
 
         return h
+
+class OutEncoder(nn.Module):
+    def __init__(self):
+        super(self.__class__, self).__init__()
+
+    def forward(self, features, G):
+        with G.local_scope():
+            G.ndata['h'] = features['0']
+            features_0_softmax = dgl.softmax_nodes(G, 'h')
+            G.ndata['h3'] = (features_0_softmax[:, 0] * (G.ndata['x'] + features['1'][:, 0]))
+            weighted_sum = dgl.readout_nodes(G, 'h3', op='sum')
+
+        return weighted_sum

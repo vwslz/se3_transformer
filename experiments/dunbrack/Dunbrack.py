@@ -17,7 +17,7 @@ DTYPE_LONG = np.long
 class DunbrackDataset(Dataset):
     """Dunbrack dataset."""
     num_edge = 1 # num of edges
-    node_feature_size = 23 #
+    node_feature_size = 21 #
     dim_output = 2 # add in dataset
     input_keys = [
                   'res_id',
@@ -55,7 +55,7 @@ class DunbrackDataset(Dataset):
         if coordinate_type == 'pp':
             self.node_feature_size = 23
         elif coordinate_type == 'cn':
-            self.node_feature_size = 27
+            self.node_feature_size = 21
 
         self.load_data()
         self.len = len(self.targets)
@@ -214,7 +214,9 @@ class DunbrackDataset(Dataset):
         elif self.coordinate_type == 'cn':
             x_c = self.get('x_c', idx)[:num_node].astype(DTYPE)
             x_n = self.get('x_n', idx)[:num_node].astype(DTYPE)
-            G.ndata['f'] = torch.tensor(np.concatenate([x_c, x_n, one_hot, targets_neighbour], -1)[..., None])
+            G.ndata['f'] = torch.tensor(np.concatenate([one_hot, targets_neighbour], -1)[..., None])
+            G.ndata['x_c'] = torch.tensor(x_c)
+            G.ndata['x_n'] = torch.tensor(x_n)
 
         # Add edge features to graph
         G.edata['d'] = torch.tensor(x[dst] - x[src])

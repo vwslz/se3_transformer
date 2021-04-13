@@ -19,7 +19,7 @@ from torch.utils.data import DataLoader
 from Dunbrack import DunbrackDataset
 
 from experiments.dunbrack import models  # as models
-
+from experiments.dunbrack import models_xyz  # as models
 import timeit
 
 
@@ -188,7 +188,9 @@ def main(FLAGS, UNPARSED_ARGV):
     FLAGS.test_size = len(test_dataset)
 
     # Choose model
-    model = models.__dict__.get(FLAGS.model)(FLAGS.num_layers,
+    model = None
+    if FLAGS.coordinate_type == "pp":
+        model = models.__dict__.get(FLAGS.model)(FLAGS.num_layers,
                                              train_dataset.node_feature_size,
                                              FLAGS.num_channels,
                                              num_nlayers=FLAGS.num_nlayers,
@@ -198,6 +200,17 @@ def main(FLAGS, UNPARSED_ARGV):
                                              div=FLAGS.div,
                                              pooling=FLAGS.pooling,
                                              n_heads=FLAGS.head)
+    elif FLAGS.coordinate_type == "cn":
+        model = models_xyz.__dict__.get(FLAGS.model)(FLAGS.num_layers,
+                                                     train_dataset.node_feature_size,
+                                                     FLAGS.num_channels,
+                                                     num_nlayers=FLAGS.num_nlayers,
+                                                     num_degrees=FLAGS.num_degrees,
+                                                     dim_output=train_dataset.dim_output,
+                                                     edge_dim=train_dataset.num_edge,
+                                                     div=FLAGS.div,
+                                                     pooling=FLAGS.pooling,
+                                                     n_heads=FLAGS.head)
     if FLAGS.restore is not None:
         model.load_state_dict(torch.load(FLAGS.restore))
     model.to(FLAGS.device)
@@ -234,7 +247,8 @@ def main(FLAGS, UNPARSED_ARGV):
         # if use_mean:
         #     loss /= pred.shape[0]
         # return loss
-        return torch.sqrt(nn.MSELoss()(pred, target))
+        return nn.MSELoss()(pred, target)
+        # return torch.sqrt(nn.MSELoss()(pred, target))
 
     def task_auc_coord(pred, target):
         pred = pred.cpu().float()
