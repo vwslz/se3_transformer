@@ -30,8 +30,11 @@ LEN_ERROR = 2.0
 
 use_wandb = False
 
-def RMSELoss(yhat,y):
+def RMSELoss(yhat, y):
     return torch.sqrt(torch.mean((yhat-y)**2))
+
+def MeanSquaredLoss(yhat, y):
+    return torch.mean(torch.sum((yhat-y)**2, -1))
 
 def to_onehot(input, num_classes, toCuda):
     input = input.reshape(len(input), 1)
@@ -42,7 +45,6 @@ def to_onehot(input, num_classes, toCuda):
 
 def to_np(x):
     return x.cpu().detach().numpy()
-
 
 def train_epoch(epoch, model, loss_fnc, acu_fnc, dataloader, optimizer, scheduler, FLAGS):
     model.train()
@@ -242,12 +244,12 @@ def main(FLAGS, UNPARSED_ARGV):
         return nn.BCEWithLogitsLoss()(pred, target)
 
     # Loss function
-    def task_loss_coord(pred, target, use_mean = True):
+    def task_loss_coord(pred, target):
         pred = pred.cpu().float()
         target = target.cpu().float()
-
         # return nn.MSELoss()(pred, target)
-        return RMSELoss(pred, target)
+        # return RMSELoss(pred, target)
+        return MeanSquaredLoss(pred, target)
 
     def task_auc_coord(pred, target):
         pred = pred.cpu().float()

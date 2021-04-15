@@ -53,9 +53,9 @@ class DunbrackDataset(Dataset):
         # Encode and extra bond type for fully connected graphs
         self.num_edge += fully_connected
         if coordinate_type == 'pp':
-            self.node_feature_size = 23
+            self.node_feature_size = 22
         elif coordinate_type == 'cn':
-            self.node_feature_size = 21
+            self.node_feature_size = 22
 
         self.load_data()
         self.len = len(self.targets)
@@ -77,10 +77,11 @@ class DunbrackDataset(Dataset):
         #     self.inputs['target'] = np.array(data['target_cat'])
         # elif self.predict == "coord":
         #     self.inputs['target'] = np.array(data['target_coord'])
-        if self.coordinate_type == 'pp':
-            self.inputs['phi'] = np.array(data['phi'])
-            self.inputs['psi'] = np.array(data['psi'])
-        elif self.coordinate_type == 'cn':
+
+        self.inputs['phi'] = np.array(data['phi'])
+        self.inputs['psi'] = np.array(data['psi'])
+
+        if self.coordinate_type == 'cn':
             self.inputs['x_c'] = np.array(data['x_c'])
             self.inputs['x_n'] = np.array(data['x_n'])
 
@@ -173,7 +174,9 @@ class DunbrackDataset(Dataset):
         num_node = self.get('num_node', idx)
         x = self.get('x', idx)[:num_node].astype(DTYPE)
         one_hot = self.get('one_hot', idx)[:num_node].astype(DTYPE)
-        targets_neighbour = self.get('targets', idx)[:num_node].astype(DTYPE)
+        # targets_neighbour = self.get('targets', idx)[:num_node].astype(DTYPE)
+        phi = self.get('phi', idx)[:num_node].astype(DTYPE)
+        psi = self.get('psi', idx)[:num_node].astype(DTYPE)
 
         # Load edge features
         num_edge = self.get('num_edge', idx)
@@ -208,13 +211,13 @@ class DunbrackDataset(Dataset):
         # Add node features to graph
         G.ndata['x'] = torch.tensor(x)  # [num_node,3]
         if self.coordinate_type == 'pp':
-            phi = self.get('phi', idx)[:num_node].astype(DTYPE)
-            psi = self.get('psi', idx)[:num_node].astype(DTYPE)
-            G.ndata['f'] = torch.tensor(np.concatenate([phi, psi, one_hot, targets_neighbour], -1)[..., None])
+            # G.ndata['f'] = torch.tensor(np.concatenate([phi, psi, one_hot, targets_neighbour], -1)[..., None])
+            G.ndata['f'] = torch.tensor(np.concatenate([phi, psi, one_hot], -1)[..., None])
         elif self.coordinate_type == 'cn':
             x_c = self.get('x_c', idx)[:num_node].astype(DTYPE)
             x_n = self.get('x_n', idx)[:num_node].astype(DTYPE)
-            G.ndata['f'] = torch.tensor(np.concatenate([one_hot, targets_neighbour], -1)[..., None])
+            # G.ndata['f'] = torch.tensor(np.concatenate([one_hot, targets_neighbour], -1)[..., None])
+            G.ndata['f'] = torch.tensor(np.concatenate([phi, psi, one_hot], -1)[..., None])
             G.ndata['x_c'] = torch.tensor(x_c)
             G.ndata['x_n'] = torch.tensor(x_n)
 
