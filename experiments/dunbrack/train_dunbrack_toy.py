@@ -16,12 +16,11 @@ import wandb
 from torch import nn, optim
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
-from Dunbrack import DunbrackDataset
+from Dunbrack_toy import DunbrackDataset
 
 from experiments.dunbrack import models  # as models
 from experiments.dunbrack import models_xyz  # as models
 import timeit
-from itertools import chain
 
 
 dir_cache = "cache/"
@@ -46,14 +45,12 @@ def to_onehot(input, num_classes, toCuda):
 def to_np(x):
     return x.cpu().detach().numpy()
 
-def train_epoch(epoch, model, loss_fnc, rmse_fnc, acu_fnc, dataloader, optimizer, scheduler, FLAGS):
+def train_epoch(epoch, model, loss_fnc, acu_fnc, dataloader, optimizer, scheduler, FLAGS):
     model.train()
 
     num_iters = len(dataloader)
-    racu = 0
-    num_targets = 0
 
-    rmse_loss = 0
+    racu = 0
 
     for i, (g, y) in enumerate(dataloader):
         g = g.to(FLAGS.device)
@@ -62,13 +59,11 @@ def train_epoch(epoch, model, loss_fnc, rmse_fnc, acu_fnc, dataloader, optimizer
         optimizer.zero_grad()
 
         # run model forward and compute loss
-        preds = model(g)
-        pred = preds[torch.flatten(g.ndata['mask'])]
-        # pred = pred.reshape(list(y.size()))
-        # Reshape y can be applied to different numbers of prediction
-        racu += acu_fnc(pred, y)
-        loss_ce = loss_fnc(pred, y)
+        pred = model(g)
 
+        racu += acu_fnc(pred, y)
+
+        loss_ce = loss_fnc(pred, y)
         loss_ce.backward()
         optimizer.step()
 
@@ -81,83 +76,57 @@ def train_epoch(epoch, model, loss_fnc, rmse_fnc, acu_fnc, dataloader, optimizer
         if FLAGS.profile and i == 10:
             sys.exit()
 
-        num_targets += y.size()[0]
         scheduler.step(epoch + i / num_iters)
 
-        rmse_loss += rmse_fnc(pred, y)
-
     racu = racu.type(torch.float64)
-    racu /= num_targets
-    rmse_loss /= num_targets * 3 # 3d coordinates
-    rmse_loss = torch.sqrt(rmse_loss)
+    racu /= FLAGS.train_size
 
-    print("num targets: ", num_targets)
     print(f"...[{epoch}|train]: {racu:.5f} [units]")
     if use_wandb:
-        wandb.log({"Percentage of Prediction Error < 1.0 A (TRAIN)": to_np(racu)})
-        wandb.log({"Train RMSE": to_np(rmse_loss)})
+        wandb.log({"Train accuracy": to_np(racu)})
 
 
-def val_epoch(epoch, model, loss_fnc, eval_fnc, dataloader, FLAGS):
+def val_epoch(epoch, model, loss_fnc, dataloader, FLAGS):
     model.eval()
 
     rloss = 0
-    num_targets = 0
-    rmse_loss = 0
+    rloss_l2 = 0
     for i, (g, y) in enumerate(dataloader):
         g = g.to(FLAGS.device)
         y = y.to(FLAGS.device)
 
         pred = model(g).detach()
 
-        pred = pred[torch.flatten(g.ndata['mask'])]
-
-        rloss += eval_fnc(pred, y)
-        rmse_loss += loss_fnc(pred, y)
-        num_targets += y.size()[0]
+        rloss += loss_fnc(pred, y)
 
     rloss = rloss.type(torch.float64)
-    rloss /= num_targets
-    rmse_loss /= num_targets * 3
-    rmse_loss = torch.sqrt(rmse_loss)
+    rloss /= FLAGS.val_size
 
-    print("rloss: ", rloss)
     print(f"...[{epoch}|val]: {rloss:.5f} [units]")
 
     if use_wandb:
-        wandb.log({"Percentage of Prediction Error < 1.0 A (VAL)": to_np(rloss)})
-        wandb.log({"Val RMSE": to_np(rmse_loss)})
-
-def test_epoch(epoch, model, loss_fnc, eval_fnc, dataloader, FLAGS, dir_cache_epoch):
+        wandb.log({"Val accuracy": to_np(rloss)})
+def test_epoch(epoch, model, acu_fnc, dataloader, FLAGS, dir_cache_epoch):
     model.eval()
 
     rloss = 0
-    num_targets = 0
-    rmse_loss = 0
     for i, (g, y) in enumerate(dataloader):
         g = g.to(FLAGS.device)
         y = y.to(FLAGS.device)
 
         pred = model(g).detach()
 
-        pred = pred[torch.flatten(g.ndata['mask'])]
+        rloss += acu_fnc(pred, y)
 
-        rloss += eval_fnc(pred, y)
-        rmse_loss += loss_fnc(pred, y)
         torch.save(pred, os.path.join(dir_cache_epoch, "pred_" + str(i) + ".pt"))
         torch.save(y, os.path.join(dir_cache_epoch, "y_" + str(i) + ".pt"))
-        num_targets += y.size()[0]
-
-    rloss = rloss.type(torch.float64)
-    rloss /= num_targets
-    rmse_loss /= num_targets * 3
-    rmse_loss = torch.sqrt(rmse_loss)
 
     print("rloss: ", rloss)
+    rloss = rloss.type(torch.float64)
+    rloss /= FLAGS.test_size
     print(f"...[{epoch}|test]: {rloss:.5f} [units]")
     if use_wandb:
-        wandb.log({"Percentage of Prediction Error < 1.0 A (TEST)": to_np(rloss)})
-        wandb.log({"Test RMSE": to_np(rmse_loss)})
+        wandb.log({"Test accuracy": to_np(rloss)})
 
 class RandomRotation(object):
     def __init__(self):
@@ -168,10 +137,11 @@ class RandomRotation(object):
         Q, __ = np.linalg.qr(M)
         return x @ Q
 
+
 def collate(samples):
     graphs, y = map(list, zip(*samples))
     batched_graph = dgl.batch(graphs)
-    return batched_graph, torch.tensor(list(chain(*y)))
+    return batched_graph, torch.tensor(y)
 
 
 def main(FLAGS, UNPARSED_ARGV):
@@ -180,8 +150,10 @@ def main(FLAGS, UNPARSED_ARGV):
                                     FLAGS.task,
                                     FLAGS.dim_output,
                                     mode='train',
-                                    transform=RandomRotation(),
-                                    # transform=None,
+                                    embedding=FLAGS.embedding,
+                                    coordinate_type=FLAGS.coordinate_type,
+                                    # transform=RandomRotation(),
+                                    transform=None,
                                     fully_connected=FLAGS.fully_connected)
     train_loader = DataLoader(train_dataset,
                               batch_size=FLAGS.batch_size,
@@ -193,6 +165,8 @@ def main(FLAGS, UNPARSED_ARGV):
                                   FLAGS.task,
                                   FLAGS.dim_output,
                                   mode='valid',
+                                  embedding=FLAGS.embedding,
+                                  coordinate_type=FLAGS.coordinate_type,
                                   fully_connected=FLAGS.fully_connected)
     val_loader = DataLoader(val_dataset,
                             batch_size=FLAGS.batch_size,
@@ -204,6 +178,8 @@ def main(FLAGS, UNPARSED_ARGV):
                                    FLAGS.task,
                                    FLAGS.dim_output,
                                    mode='test',
+                                   embedding=FLAGS.embedding,
+                                   coordinate_type=FLAGS.coordinate_type,
                                    fully_connected=FLAGS.fully_connected
                                    )
     test_loader = DataLoader(test_dataset,
@@ -217,16 +193,29 @@ def main(FLAGS, UNPARSED_ARGV):
     FLAGS.test_size = len(test_dataset)
 
     # Choose model
-    model = models_xyz.__dict__.get(FLAGS.model)(FLAGS.num_layers,
-                             train_dataset.node_feature_size,
-                             FLAGS.num_channels,
-                             num_nlayers=FLAGS.num_nlayers,
-                             num_degrees=FLAGS.num_degrees,
-                             dim_output=train_dataset.dim_output,
-                             edge_dim=1,
-                             div=FLAGS.div,
-                             pooling=FLAGS.pooling,
-                             n_heads=FLAGS.head)
+    model = None
+    if FLAGS.coordinate_type == "pp":
+        model = models.__dict__.get(FLAGS.model)(FLAGS.num_layers,
+                                             train_dataset.node_feature_size,
+                                             FLAGS.num_channels,
+                                             num_nlayers=FLAGS.num_nlayers,
+                                             num_degrees=FLAGS.num_degrees,
+                                             dim_output=train_dataset.dim_output,
+                                             edge_dim=train_dataset.num_edge,
+                                             div=FLAGS.div,
+                                             pooling=FLAGS.pooling,
+                                             n_heads=FLAGS.head)
+    elif FLAGS.coordinate_type == "cn":
+        model = models_xyz.__dict__.get(FLAGS.model)(FLAGS.num_layers,
+                                                     train_dataset.node_feature_size,
+                                                     FLAGS.num_channels,
+                                                     num_nlayers=FLAGS.num_nlayers,
+                                                     num_degrees=FLAGS.num_degrees,
+                                                     dim_output=train_dataset.dim_output,
+                                                     edge_dim=train_dataset.num_edge,
+                                                     div=FLAGS.div,
+                                                     pooling=FLAGS.pooling,
+                                                     n_heads=FLAGS.head)
     if FLAGS.restore is not None:
         model.load_state_dict(torch.load(FLAGS.restore))
     model.to(FLAGS.device)
@@ -248,6 +237,13 @@ def main(FLAGS, UNPARSED_ARGV):
         return torch.sum(pred == target)
 
     # Loss function
+    def task_loss_cat(pred, target):
+        pred = pred.cpu()
+        target = target.cpu()
+        target = torch.nn.functional.one_hot(target, num_classes=FLAGS.dim_output).float()
+        return nn.BCEWithLogitsLoss()(pred, target)
+
+    # Loss function
     def task_loss_coord(pred, target):
         pred = pred.cpu().float()
         target = target.cpu().float()
@@ -255,20 +251,10 @@ def main(FLAGS, UNPARSED_ARGV):
         return RMSELoss(pred, target)
         # return MeanSquaredLoss(pred, target)
 
-    # shape: (#targets in all Gs, 3)
-    def task_loss_coord_multi(pred, target):
-        # return torch.mean(((pred - target)**2).sum(1)) # MSE
-        # return torch.sqrt(torch.mean(((pred-target)**2))) # RMSE
-        return torch.sqrt(((pred-target)**2).sum(1)).sum(0) # sum distance
-
-    # sum all errors and divided by N * 3, then sqrt of it
-    def task_loss_coord_RMSE(pred, target):
-        return torch.sum((pred - target) ** 2)
-
-    def task_auc_coord(pred, target, LEN_ERROR=1.0):
-        # pred = pred.cpu().float()
-        # target = target.cpu().float()
-        distances = torch.sqrt(torch.sum(torch.square(pred - target), dim=1))
+    def task_auc_coord(pred, target, LEN_ERROR=2.0):
+        pred = pred.cpu().float()
+        target = target.cpu().float()
+        distances = torch.sqrt(torch.sum(torch.square(torch.abs(pred - target)), dim = 1))
         return torch.sum(distances<LEN_ERROR)
 
     # Save path
@@ -286,9 +272,14 @@ def main(FLAGS, UNPARSED_ARGV):
         dir_cache_epoch = os.path.join(dir_cache, str(epoch))
         os.mkdir(dir_cache_epoch)
 
-        train_epoch(epoch, model, task_loss_coord_multi, task_loss_coord_RMSE, task_auc_coord, train_loader, optimizer, scheduler, FLAGS)
-        val_epoch(epoch, model, task_loss_coord_RMSE, task_auc_coord, val_loader, FLAGS)
-        test_epoch(epoch, model, task_loss_coord_RMSE, task_auc_coord, test_loader, FLAGS, dir_cache_epoch)
+        if FLAGS.task == "target_cat":
+            train_epoch(epoch, model, task_loss_cat, task_loss_percentage, train_loader, optimizer, scheduler, FLAGS)
+            val_epoch(epoch, model, task_loss_percentage, val_loader, FLAGS)
+            test_epoch(epoch, model, task_loss_percentage, test_loader, FLAGS, dir_cache_epoch)
+        elif FLAGS.task == "target_coord":
+            train_epoch(epoch, model, task_loss_coord, task_auc_coord, train_loader, optimizer, scheduler, FLAGS)
+            val_epoch(epoch, model, task_auc_coord, val_loader, FLAGS)
+            test_epoch(epoch, model, task_auc_coord, test_loader, FLAGS, dir_cache_epoch)
 
         stop_epoch = timeit.default_timer()
         print('Time for epoch: ', stop_epoch - start_epoch)
@@ -331,9 +322,13 @@ if __name__ == '__main__':
     # parser.add_argument('--task', type=str, default='homo',
     #         help="QM9 task ['homo, 'mu', 'alpha', 'lumo', 'gap', 'r2', 'zpve', 'u0', 'u298', 'h298', 'g298', 'cv']")
     parser.add_argument('--task', type=str, default='target',
-                        help="Dunbrack task ['target_coord']")
+                        help="Dunbrack task ['target_cat' or 'target_coord']")
     parser.add_argument('--dim_output', type=int, default=1,
                         help="Number of categories of Dunbrack task")
+    parser.add_argument('--embedding', type=str, default="rota",
+                        help="Embedding by rota / eg")
+    parser.add_argument('--coordinate_type', type=str, default="pp",
+                        help="coordinate type of pp / cn")
 
     # Logging
     parser.add_argument('--name', type=str, default=None,
@@ -346,7 +341,7 @@ if __name__ == '__main__':
                         help="Directory name to save models")
     parser.add_argument('--restore', type=str, default=None,
                         help="Path to model to restore")
-    parser.add_argument('--wandb', type=str, default='equivariant-attention-dunbrack-multi',
+    parser.add_argument('--wandb', type=str, default='equivariant-attention-dunbrack',
                         help="wandb project name")
     parser.add_argument('--use_wandb', action='store_true',
                         help="use wandb project name")

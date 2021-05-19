@@ -13,26 +13,20 @@ from scipy.constants import physical_constants
 DTYPE = np.float32
 DTYPE_INT = np.int32
 DTYPE_LONG = np.long
-DTYPE_BOOL = np.bool
 
 class DunbrackDataset(Dataset):
     """Dunbrack dataset."""
     num_edge = 1 # num of edges
-    node_feature_size = 20 #
+    node_feature_size = 21 #
     dim_output = 2 # add in dataset
     input_keys = [
-                'res_id',
-                'num_node',
-                'num_edge',
-                'x',
-                'one_hot',
-                'edge',
-                'phi',
-                'psi',
-                'x_c',
-                'x_n',
-                'mask'
-                ]
+                  'res_id',
+                  'num_node',
+                  'num_edge',
+                  'x',
+                  'one_hot',
+                  'edge'
+                  ]
 
     unit_conversion = {'chi': 1.0}
 
@@ -58,7 +52,10 @@ class DunbrackDataset(Dataset):
 
         # Encode and extra bond type for fully connected graphs
         self.num_edge += fully_connected
-        self.node_feature_size = 20
+        if coordinate_type == 'pp':
+            self.node_feature_size = 22
+        elif coordinate_type == 'cn':
+            self.node_feature_size = 20
 
         self.load_data()
         self.len = len(self.targets)
@@ -76,7 +73,24 @@ class DunbrackDataset(Dataset):
         # Filter out the inputs
         self.inputs = {key: np.array(data[key]) for key in self.input_keys}
 
-        self.inputs['target'] = data[self.task]
+        # if self.predict == "cat":
+        #     self.inputs['target'] = np.array(data['target_cat'])
+        # elif self.predict == "coord":
+        #     self.inputs['target'] = np.array(data['target_coord'])
+
+        self.inputs['phi'] = np.array(data['phi'])
+        self.inputs['psi'] = np.array(data['psi'])
+
+        if self.coordinate_type == 'cn':
+            self.inputs['x_c'] = np.array(data['x_c'])
+            self.inputs['x_n'] = np.array(data['x_n'])
+
+        self.inputs['target'] = np.array(data[self.task])
+
+        if self.embedding == "rota":
+            self.inputs['targets'] = np.array(data['chis'])
+        elif self.embedding == "eg":
+            self.inputs['targets'] = np.array(data['egs'])
 
         # Filter out the targets and population stats
         self.targets = data[self.task]
@@ -160,6 +174,7 @@ class DunbrackDataset(Dataset):
         num_node = self.get('num_node', idx)
         x = self.get('x', idx)[:num_node].astype(DTYPE)
         one_hot = self.get('one_hot', idx)[:num_node].astype(DTYPE)
+        # targets_neighbour = self.get('targets', idx)[:num_node].astype(DTYPE)
         phi = self.get('phi', idx)[:num_node].astype(DTYPE)
         psi = self.get('psi', idx)[:num_node].astype(DTYPE)
 
@@ -169,18 +184,21 @@ class DunbrackDataset(Dataset):
         edge = np.asarray(edge, dtype=DTYPE_INT)
 
         # Load target
-        y = np.array([np.array(yi) for yi in self.get('target', idx)])
-        y = y.astype(DTYPE)
-        if len(y) < 4:
-            b = 1
-        elif len(y) == 4:
-            c = 1
+        y = self.get('target', idx)
+        if "coord" in self.task:
+            y = y.astype(DTYPE)
+            # y = y - x[edge[0][0]]
+        else:
+            y = y.astype(DTYPE_LONG)
         # y = self.get_target(idx, normalize=True).astype(DTYPE)
+        # y = np.array([y])
+        # y = self.to_one_hot(y, self.dim_output).astype(DTYPE_INT)
 
         # Augmentation on the coordinates
-        # if self.transform:
-        #     x = self.transform(x).astype(DTYPE)
-        #     y = self.transform(y).astype(DTYPE)
+        if self.transform:
+            x = self.transform(x).astype(DTYPE)
+            y = self.transform(y).astype(DTYPE)
+
 
         # Create nodes
         if self.fully_connected:
@@ -194,22 +212,23 @@ class DunbrackDataset(Dataset):
 
         # Add node features to graph
         G.ndata['x'] = torch.tensor(x)  # [num_node,3]
-
-        x_c = self.get('x_c', idx)[:num_node].astype(DTYPE)
-        x_n = self.get('x_n', idx)[:num_node].astype(DTYPE)
-        G.ndata['f'] = torch.tensor(np.concatenate([one_hot], -1)[..., None])
-        # G.ndata['f'] = torch.tensor(np.concatenate([phi, psi, one_hot], -1)[..., None])
-        G.ndata['x_c'] = torch.tensor(x_c)
-        G.ndata['x_n'] = torch.tensor(x_n)
-
-        # Load mask
-        mask = self.get('mask', idx)[:num_node].astype(DTYPE_BOOL)
-        G.ndata['mask'] = torch.tensor(mask)
+        if self.coordinate_type == 'pp':
+            # G.ndata['f'] = torch.tensor(np.concatenate([phi, psi, one_hot, targets_neighbour], -1)[..., None])
+            G.ndata['f'] = torch.tensor(np.concatenate([phi, psi, one_hot], -1)[..., None])
+        elif self.coordinate_type == 'cn':
+            x_c = self.get('x_c', idx)[:num_node].astype(DTYPE)
+            x_n = self.get('x_n', idx)[:num_node].astype(DTYPE)
+            # # G.ndata['f'] = torch.tensor(np.concatenate([one_hot, targets_neighbour], -1)[..., None])
+            # G.ndata['f'] = torch.tensor(np.concatenate([phi, psi, one_hot], -1)[..., None])
+            G.ndata['f'] = torch.tensor(np.concatenate([one_hot], -1)[..., None])
+            G.ndata['x_c'] = torch.tensor(x_c)
+            G.ndata['x_n'] = torch.tensor(x_n)
 
         # Add edge features to graph
         G.edata['d'] = torch.tensor(x[dst] - x[src])
         G.edata['w'] = torch.tensor(w)
         return G, y
+
 
 if __name__ == "__main__":
     def collate(samples):

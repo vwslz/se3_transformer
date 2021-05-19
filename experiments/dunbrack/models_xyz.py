@@ -138,7 +138,8 @@ class OutEncoder(nn.Module):
         with G.local_scope():
             G.ndata['h'] = features['0']
             features_0_softmax = dgl.softmax_nodes(G, 'h')
-            G.ndata['h3'] = (features_0_softmax[:, 0] * (G.ndata['x'] + features['1'][:, 0]))
-            weighted_sum = dgl.readout_nodes(G, 'h3', op='sum')
+            # G.ndata['h3'] = (features_0_softmax[:, 0] * (G.ndata['x'] +
+            #                                              features['1'][:, 0]))
+            # weighted_sum = dgl.readout_nodes(G, 'h3', op='sum')
 
-        return weighted_sum
+        return G.ndata['x'] + features['1'][:, 0]
