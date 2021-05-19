@@ -7,27 +7,31 @@ Unzip the dataset under dataset directory. This directory is mainly from QM9 dir
 
 [Result Comparison](https://docs.google.com/spreadsheets/d/1gb_oLTwC3zbwXrm2OB2Q5SfGFSU6cdRtMmb7RHTa1gg/edit?usp=sharing)
 
-## Training
+## Training for Multiple Targets (xyz coordinates only)
+
+python train_dunbrack.py --model SE3Transformer --num_epochs 50 --num_layers 7 --num_channels 32 --num_workers 4 --div 2 --pooling max --head 8 --print_interval 5 --num_degrees 4 --batch_size 4 --data_address new_PHE_INTERMEDIATE_05012021.pt --task target_coord --lr 0.001 --name rmse_0.001-4-1-1
+
+## Training for Single Target
 
 To train the model for the category, run this command:
 
 for MET-ROTA-5:
 ```train
-python train_dunbrack.py --model SE3Transformer --num_epochs 50 --num_degrees 2 --num_layers 7 --num_channels 32 --num_workers 4 --div 2 --pooling max --head 8  --print_interval 50 --name dunbrack-met --batch_size 16 --data_address 13750_MET-TRIVIAL_ROTA-5_03312021.pt --task target_cat --dim_output 5 --coordinate_type pp --lr 0.001 --use_wandb
+python train_dunbrack_toy.py --model SE3Transformer --num_epochs 50 --num_degrees 2 --num_layers 7 --num_channels 32 --num_workers 4 --div 2 --pooling max --head 8  --print_interval 50 --name dunbrack-met --batch_size 16 --data_address 13750_MET-TRIVIAL_ROTA-5_03312021.pt --task target_cat --dim_output 5 --coordinate_type pp --lr 0.001 --use_wandb
 ```
 for TYR-ROTA-2:
 - rota
 ```train
-python train_dunbrack.py --model SE3Transformer --num_epochs 50 --num_degrees 2 --num_layers 7 --num_channels 32 --num_workers 4 --div 2 --pooling max --head 8 --print_interval 50 --name dunbrack-tyr --batch_size 32 --data_address 44000_TYR-TRIVIAL_ROTA-2_03312021.pt --task target_cat 2 --dim_output 2 --embedding rota --coordinate_type pp --lr 0.001 --use_wandb
+python train_dunbrack_toy.py --model SE3Transformer --num_epochs 50 --num_degrees 2 --num_layers 7 --num_channels 32 --num_workers 4 --div 2 --pooling max --head 8 --print_interval 50 --name dunbrack-tyr --batch_size 32 --data_address 44000_TYR-TRIVIAL_ROTA-2_03312021.pt --task target_cat 2 --dim_output 2 --embedding rota --coordinate_type pp --lr 0.001 --use_wandb
 ```
 - eg
 ```train
-python train_dunbrack.py --model SE3Transformer --num_epochs 50 --num_degrees 2 --num_layers 7 --num_channels 32 --num_workers 4 --div 2 --pooling max --head 8 --print_interval 50 --name dunbrack-tyr --batch_size 32 --data_address 44000_TYR-TRIVIAL_EG-2_03312021.pt --task target_cat  --dim_output 2 --embedding eg --coordinate_type pp --lr 0.001 --use_wandb
+python train_dunbrack_toy.py --model SE3Transformer --num_epochs 50 --num_degrees 2 --num_layers 7 --num_channels 32 --num_workers 4 --div 2 --pooling max --head 8 --print_interval 50 --name dunbrack-tyr --batch_size 32 --data_address 44000_TYR-TRIVIAL_EG-2_03312021.pt --task target_cat  --dim_output 2 --embedding eg --coordinate_type pp --lr 0.001 --use_wandb
 ```
 
-To train the model for the coordinate, run this command:
+To train the model for the coordinate(model_xyz changed at the end of file), run this command:
 ```
-python train_dunbrack.py --model SE3Transformer --num_epochs 50 --num_layers 7 --num_channels 32 --num_workers 4 --div 2 --pooling max --head 8 --print_interval 50 --num_degrees 2 --name dunbrack-tyr --batch_size 32 --data_address 44000_TYR-TRIVIAL_EG-2_04032021.pt --task target_coord --dim_output 1 --embedding eg --coordinate_type cn --lr 0.001 --use_wandb
+python train_dunbrack_toy.py --model SE3Transformer --num_epochs 50 --num_layers 7 --num_channels 32 --num_workers 4 --div 2 --pooling max --head 8 --print_interval 50 --num_degrees 2 --name dunbrack-tyr --batch_size 32 --data_address 44000_TYR-TRIVIAL_EG-2_04032021.pt --task target_coord --dim_output 1 --embedding eg --coordinate_type cn --lr 0.001 --use_wandb
 ```
 
 ## Parameters
